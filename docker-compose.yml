@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  claude-swarm:
+    build: .
+    container_name: claude-swarm-spawn
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - SWARM_CONFIG=${SWARM_CONFIG:-/workspace/configs/basic-swarm.yml}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - CLAUDE_HOME=/home/developer/.claude
+      - NODE_ENV=development
+    volumes:
+      # Project files
+      - ./projects:/workspace/projects
+      - ./configs:/workspace/configs
+      - ./logs:/workspace/logs
+      - ./sessions:/workspace/sessions
+      
+      # Development tools
+      - node_modules:/workspace/node_modules
+      - gems:/home/developer/.gem
+      
+      # Claude configuration
+      - claude_config:/home/developer/.claude
+      
+      # Git configuration (from host)
+      - ~/.gitconfig:/home/developer/.gitconfig:ro
+      - ~/.ssh:/home/developer/.ssh:ro
+      
+    ports:
+      - "8090:8080"  # API server
+      - "3010:3000"  # Development server
+      - "9239:9229"  # Node debugger
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    networks:
+      - claude-network
+    working_dir: /workspace
+
+  redis:
+    image: redis:7-alpine
+    container_name: claude-redis-spawn
+    command: redis-server --appendonly yes
+    ports:
+      - "6389:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - claude-network
+    restart: unless-stopped
+
+  # Optional monitoring
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: redis-commander-spawn
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8091:8081"
+    networks:
+      - claude-network
+    depends_on:
+      - redis
+    profiles:
+      - monitoring
+
+networks:
+  claude-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
+
+volumes:
+  redis-data:
+  node_modules:
+  gems:
+  claude_config:

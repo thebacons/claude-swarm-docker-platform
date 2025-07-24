@@ -1,0 +1,107 @@
+{
+  "hooks": {
+    "userPromptSubmit": [
+      {
+        "description": "Log user request for audit trail",
+        "command": "echo \"[$(date)] User prompt: ${CLAUDE_USER_PROMPT}\" >> hooks/logs/audit.log",
+        "blocking": false
+      }
+    ],
+    "postToolUse": [
+      {
+        "description": "Syntax validation for JavaScript files",
+        "matcher": {
+          "tools": ["Write", "Edit"],
+          "files": ["*.js", "*.jsx"]
+        },
+        "command": "bash hooks/validators/syntax-check.sh ${CLAUDE_FILE_PATH}",
+        "blocking": true,
+        "continueOnError": false
+      },
+      {
+        "description": "React pattern validation",
+        "matcher": {
+          "tools": ["Write", "Edit"],
+          "files": ["**/App.js", "**/App.jsx", "**/*Component.js", "**/*Component.jsx"]
+        },
+        "command": "bash hooks/validators/react-check.sh ${CLAUDE_FILE_PATH}",
+        "blocking": true,
+        "continueOnError": false
+      },
+      {
+        "description": "Pre-write validation for new files",
+        "matcher": {
+          "tools": ["Write"],
+          "files": ["*.js", "*.jsx", "*.html"]
+        },
+        "command": "bash hooks/validators/pre-write-check.sh ${CLAUDE_FILE_PATH}",
+        "blocking": true
+      },
+      {
+        "description": "Auto-fix React module issues",
+        "matcher": {
+          "tools": ["Write", "Edit"],
+          "files": ["*.js", "*.jsx"]
+        },
+        "command": "node hooks/fixers/react-module-fixer.js ${CLAUDE_FILE_PATH}",
+        "blocking": false,
+        "condition": "grep -q 'export default\\ < /dev/null | import ' ${CLAUDE_FILE_PATH}"
+      },
+      {
+        "description": "Component testing after write",
+        "matcher": {
+          "tools": ["Write"],
+          "files": ["**/components/*.js", "**/components/*.jsx", "**/App.js", "**/App.jsx"]
+        },
+        "command": "node hooks/testers/component-test.js ${CLAUDE_FILE_PATH}",
+        "blocking": false,
+        "continueOnError": true
+      },
+      {
+        "description": "Project-wide validation after changes",
+        "matcher": {
+          "tools": ["Write", "Edit"],
+          "files": ["**/*.js", "**/*.jsx", "**/*.html"]
+        },
+        "command": "bash hooks/validators/project-validator.sh $(dirname ${CLAUDE_FILE_PATH}) ${CLAUDE_FILE_PATH}",
+        "blocking": false,
+        "continueOnError": true
+      },
+      {
+        "description": "Integration test for web projects",
+        "matcher": {
+          "tools": ["Write"],
+          "files": ["**/index.html", "**/App.js", "**/App.jsx"]
+        },
+        "command": "node hooks/testers/run-integration-test.js $(dirname ${CLAUDE_FILE_PATH})",
+        "blocking": false,
+        "continueOnError": true
+      }
+    ],
+    "subagentStart": [
+      {
+        "description": "Configure subagent working directory",
+        "command": "echo \"Subagent ${CLAUDE_SUBAGENT_NAME} starting in ${CLAUDE_WORKING_DIR}\" >> hooks/logs/subagent.log",
+        "blocking": false
+      }
+    ],
+    "subagentStop": [
+      {
+        "description": "Run integration tests on subagent output",
+        "command": "bash hooks/testers/integration-test.sh ${CLAUDE_SUBAGENT_OUTPUT}",
+        "blocking": true,
+        "condition": "${CLAUDE_SUBAGENT_STATUS} == 'success'"
+      }
+    ]
+  },
+  "voice": {
+    "enabled": false,
+    "engine": "system",
+    "events": {
+      "process_start": true,
+      "validation_error": true,
+      "subagent_spawn": false,
+      "process_complete": true
+    }
+  }
+}

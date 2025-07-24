@@ -1,0 +1,88 @@
+# Research Team Configuration
+name: Research Team
+description: Deep analysis and investigation team for complex problems
+
+agents:
+  - name: lead_researcher
+    role: Lead Researcher
+    capabilities:
+      - research_planning
+      - hypothesis_formation
+      - methodology_design
+      - result_synthesis
+    
+  - name: data_analyst
+    role: Data Analyst
+    capabilities:
+      - data_collection
+      - statistical_analysis
+      - visualization
+      - pattern_recognition
+    
+  - name: literature_reviewer
+    role: Literature Reviewer
+    capabilities:
+      - academic_search
+      - paper_analysis
+      - citation_tracking
+      - knowledge_synthesis
+    
+  - name: experiment_designer
+    role: Experiment Designer
+    capabilities:
+      - experimental_design
+      - control_setup
+      - variable_isolation
+      - result_validation
+    
+  - name: technical_writer
+    role: Technical Writer
+    capabilities:
+      - report_writing
+      - documentation
+      - visualization_creation
+      - publication_preparation
+
+workflows:
+  deep_research:
+    steps:
+      - agent: lead_researcher
+        action: define_research_question
+        output: research_plan
+        
+      - parallel:
+          - agent: literature_reviewer
+            action: conduct_literature_review
+            input: research_plan
+          - agent: data_analyst
+            action: gather_existing_data
+            input: research_plan
+            
+      - agent: lead_researcher
+        action: refine_hypothesis
+        
+      - agent: experiment_designer
+        action: design_experiments
+        
+      - agent: data_analyst
+        action: analyze_results
+        
+      - agent: lead_researcher
+        action: draw_conclusions
+        
+      - agent: technical_writer
+        action: prepare_report
+
+  quick_investigation:
+    steps:
+      - agent: lead_researcher
+        action: scope_investigation
+        
+      - parallel:
+          - agent: literature_reviewer
+            action: quick_search
+          - agent: data_analyst
+            action: preliminary_analysis
+            
+      - agent: technical_writer
+        action: create_summary

@@ -1,0 +1,77 @@
+# Full Stack Development Team Configuration
+name: Full Stack Team
+description: Complete development team for web applications
+
+agents:
+  - name: architect
+    role: System Architect
+    capabilities:
+      - system_design
+      - architecture_decisions
+      - technology_selection
+      - scalability_planning
+    
+  - name: frontend_dev
+    role: Frontend Developer
+    capabilities:
+      - react_development
+      - ui_implementation
+      - responsive_design
+      - state_management
+    
+  - name: backend_dev
+    role: Backend Developer
+    capabilities:
+      - api_development
+      - database_design
+      - authentication
+      - microservices
+    
+  - name: devops
+    role: DevOps Engineer
+    capabilities:
+      - ci_cd_setup
+      - containerization
+      - cloud_deployment
+      - monitoring_setup
+    
+  - name: qa_engineer
+    role: QA Engineer
+    capabilities:
+      - test_planning
+      - automated_testing
+      - performance_testing
+      - bug_tracking
+
+workflows:
+  full_stack_development:
+    steps:
+      - agent: architect
+        action: design_system
+        output: architecture_doc
+      
+      - parallel:
+          - agent: frontend_dev
+            action: setup_frontend
+            input: architecture_doc
+          - agent: backend_dev
+            action: setup_backend
+            input: architecture_doc
+          - agent: devops
+            action: setup_infrastructure
+            input: architecture_doc
+      
+      - parallel:
+          - agent: frontend_dev
+            action: implement_ui
+          - agent: backend_dev
+            action: implement_api
+      
+      - agent: devops
+        action: setup_ci_cd
+      
+      - agent: qa_engineer
+        action: run_tests
+      
+      - agent: devops
+        action: deploy_application

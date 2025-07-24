@@ -1,0 +1,143 @@
+{
+  "projects": [
+    {
+      "id": "PROJ-001",
+      "name": "Claude Swarm Docker Implementation",
+      "description": "Multi-agent AI development environment with validation hooks",
+      "created": "2025-01-24T00:00:00Z"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "projectId": "PROJ-001",
+      "title": "Create directory structure for claude-swarm-docker",
+      "description": "Set up initial project structure with Dockerfile, docker-compose, configs",
+      "status": "Completed",
+      "workflow": ["NS", "IP", "Completed"],
+      "created": "2025-01-24T00:00:00Z",
+      "updated": "2025-01-24T00:30:00Z"
+    },
+    {
+      "id": "TASK-002",
+      "projectId": "PROJ-001",
+      "title": "Fix Docker authentication issues",
+      "description": "Solve OAuth authentication error in container using Python SDK",
+      "status": "Completed",
+      "workflow": ["NS", "IP", "Defect", "IP", "Completed"],
+      "created": "2025-01-24T00:30:00Z",
+      "updated": "2025-01-24T01:00:00Z"
+    },
+    {
+      "id": "TASK-003",
+      "projectId": "PROJ-001",
+      "title": "Test parallel agent execution",
+      "description": "Implement true parallel execution with cognitive triangulation",
+      "status": "Completed",
+      "workflow": ["NS", "IP", "R4-TUT", "R4-FUT", "Completed"],
+      "created": "2025-01-24T01:00:00Z",
+      "updated": "2025-01-24T02:00:00Z"
+    },
+    {
+      "id": "TASK-004",
+      "projectId": "PROJ-001",
+      "title": "Identify white screen root cause",
+      "description": "Discovered ES6 modules with babel script tags causing errors",
+      "status": "Completed",
+      "workflow": ["NS", "IP", "Defect", "R4R", "Completed"],
+      "created": "2025-01-24T02:00:00Z",
+      "updated": "2025-01-24T02:30:00Z"
+    },
+    {
+      "id": "TASK-005",
+      "projectId": "PROJ-001",
+      "title": "Design hook-based validation system",
+      "description": "Create comprehensive plan for validation hooks and fixers",
+      "status": "Completed",
+      "workflow": ["NS", "IP", "Completed"],
+      "created": "2025-01-24T02:30:00Z",
+      "updated": "2025-01-24T03:00:00Z"
+    },
+    {
+      "id": "TASK-006",
+      "projectId": "PROJ-001",
+      "title": "Implement hook validation system",
+      "description": "Build validators, fixers, and testers for React code",
+      "status": "Completed",
+      "workflow": ["NS", "IP", "R4-TUT", "R4-FUT", "R4-SIT", "Completed"],
+      "created": "2025-01-24T03:00:00Z",
+      "updated": "2025-01-24T04:00:00Z"
+    },
+    {
+      "id": "TASK-007",
+      "projectId": "PROJ-001",
+      "title": "Test and fix todo-app",
+      "description": "Apply hooks to fix module system issues in todo-app",
+      "status": "Completed",
+      "workflow": ["NS", "IP", "R4-TUT", "R4-FUT", "Completed"],
+      "created": "2025-01-24T04:00:00Z",
+      "updated": "2025-01-24T04:30:00Z"
+    },
+    {
+      "id": "TASK-008",
+      "projectId": "PROJ-001",
+      "title": "Create enhanced validation system",
+      "description": "Build project-wide validation and integration testing",
+      "status": "Completed",
+      "workflow": ["NS", "IP", "R4-TUT", "R4-FUT", "R4-SIT", "Completed"],
+      "created": "2025-01-24T04:30:00Z",
+      "updated": "2025-01-24T05:00:00Z"
+    },
+    {
+      "id": "TASK-009",
+      "projectId": "PROJ-001",
+      "title": "Create task-manager app for UAT",
+      "description": "Build comprehensive task management app with persistence",
+      "status": "IP",
+      "workflow": ["NS", "IP"],
+      "created": "2025-01-24T05:00:00Z",
+      "updated": "2025-01-24T05:00:00Z"
+    },
+    {
+      "id": "TASK-010",
+      "projectId": "PROJ-001",
+      "title": "Deploy hooks to Docker containers",
+      "description": "Integrate validation system with swarm agents",
+      "status": "NS",
+      "workflow": ["NS"],
+      "created": "2025-01-24T05:00:00Z",
+      "updated": "2025-01-24T05:00:00Z"
+    },
+    {
+      "id": "TASK-011",
+      "projectId": "PROJ-001",
+      "title": "Implement voice integration",
+      "description": "Add TTS/STT capabilities to hook system",
+      "status": "NS",
+      "workflow": ["NS"],
+      "created": "2025-01-24T05:00:00Z",
+      "updated": "2025-01-24T05:00:00Z"
+    },
+    {
+      "id": "TASK-012",
+      "projectId": "PROJ-001",
+      "title": "Create Policeman Agent",
+      "description": "Build oversight agent using hooks for enforcement",
+      "status": "NS",
+      "workflow": ["NS"],
+      "created": "2025-01-24T05:00:00Z",
+      "updated": "2025-01-24T05:00:00Z"
+    }
+  ],
+  "statuses": {
+    "NS": "Not Started",
+    "IP": "In Progress",
+    "Defect": "Defect Found",
+    "Completed": "Completed",
+    "R4-TUT": "Ready for Unit Testing",
+    "R4-FUT": "Ready for Functional Testing",
+    "R4-SIT": "Ready for Integration Testing",
+    "R4R": "Ready for Retesting",
+    "R4-UAT": "Ready for User Acceptance Testing"
+  }
+}

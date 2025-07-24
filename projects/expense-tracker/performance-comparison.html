@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance Comparison - Original vs Optimized</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9fafb;
+        }
+        
+        h1 {
+            color: #111827;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .version-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .version-container h2 {
+            margin-top: 0;
+            color: #374151;
+            text-align: center;
+        }
+        
+        .version-container iframe {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+        }
+        
+        .metrics-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .metric-card {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        
+        .metric-card h4 {
+            margin: 0 0 10px 0;
+            color: #6b7280;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #111827;
+        }
+        
+        .metric-improvement {
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        
+        .improvement-positive {
+            color: #10b981;
+        }
+        
+        .improvement-negative {
+            color: #ef4444;
+        }
+        
+        .test-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #6b7280;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 Expense Tracker Performance Comparison</h1>
+    
+    <div class="test-controls">
+        <button class="btn btn-primary" onclick="runPerformanceTests()">Run Performance Tests</button>
+        <button class="btn btn-secondary" onclick="loadBothVersions()">Load Both Versions</button>
+    </div>
+    
+    <div class="comparison-grid">
+        <div class="version-container">
+            <h2>Original Version</h2>
+            <iframe id="original-frame" src="index.html"></iframe>
+        </div>
+        
+        <div class="version-container">
+            <h2>Optimized Version</h2>
+            <iframe id="optimized-frame" src="index-optimized.html"></iframe>
+        </div>
+    </div>
+    
+    <div class="metrics-container">
+        <h2>Performance Metrics Comparison</h2>
+        <div id="loading" class="loading" style="display: none;">Running performance tests...</div>
+        
+        <div class="metrics-grid" id="metrics-grid">
+            <!-- Metrics will be inserted here -->
+        </div>
+    </div>
+    
+    <script>
+        let originalMetrics = {};
+        let optimizedMetrics = {};
+        
+        function loadBothVersions() {
+            document.getElementById('original-frame').src = 'index.html';
+            document.getElementById('optimized-frame').src = 'index-optimized.html';
+        }
+        
+        async function runPerformanceTests() {
+            const loadingEl = document.getElementById('loading');
+            const metricsGrid = document.getElementById('metrics-grid');
+            
+            loadingEl.style.display = 'block';
+            metricsGrid.innerHTML = '';
+            
+            // Load test data
+            const testData = generateLargeDataset(500);
+            
+            // Test original version
+            console.log('Testing original version...');
+            originalMetrics = await testVersion('original-frame', testData);
+            
+            // Test optimized version
+            console.log('Testing optimized version...');
+            optimizedMetrics = await testVersion('optimized-frame', testData);
+            
+            // Display results
+            displayMetrics();
+            loadingEl.style.display = 'none';
+        }
+        
+        function generateLargeDataset(count) {
+            const categories = ['Food', 'Transport', 'Entertainment', 'Utilities', 'Other'];
+            const expenses = [];
+            
+            for (let i = 0; i < count; i++) {
+                expenses.push({
+                    id: Date.now() + i,
+                    description: `Test Expense ${i + 1}`,
+                    amount: Math.random() * 200 + 10,
+                    category: categories[Math.floor(Math.random() * categories.length)],
+                    date: new Date(Date.now() - Math.random() * 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                });
+            }
+            
+            return expenses;
+        }
+        
+        async function testVersion(frameId, testData) {
+            const frame = document.getElementById(frameId);
+            const frameWindow = frame.contentWindow;
+            
+            // Wait for frame to load
+            await new Promise(resolve => {
+                if (frame.contentDocument.readyState === 'complete') {
+                    resolve();
+                } else {
+                    frame.onload = resolve;
+                }
+            });
+            
+            // Wait a bit for React to initialize
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            const metrics = {
+                initialRender: 0,
+                filterChange: 0,
+                addExpense: 0,
+                deleteExpense: 0,
+                chartSwitch: 0,
+                memoryUsage: 0
+            };
+            
+            // Inject test data
+            const start = performance.now();
+            frameWindow.localStorage.setItem('expenses', JSON.stringify(testData));
+            frameWindow.location.reload();
+            
+            // Wait for reload
+            await new Promise(resolve => {
+                frame.onload = resolve;
+            });
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            metrics.initialRender = performance.now() - start;
+            
+            // Test filter change
+            const filterStart = performance.now();
+            const filterSelect = frame.contentDocument.querySelector('.filter-select');
+            if (filterSelect) {
+                filterSelect.value = 'Food';
+                filterSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                await new Promise(resolve => setTimeout(resolve, 100));
+                metrics.filterChange = performance.now() - filterStart;
+            }
+            
+            // Test chart switch
+            const chartStart = performance.now();
+            const chartTab = frame.contentDocument.querySelector('.nav-tab:last-child');
+            if (chartTab) {
+                chartTab.click();
+                await new Promise(resolve => setTimeout(resolve, 200));
+                metrics.chartSwitch = performance.now() - chartStart;
+            }
+            
+            // Estimate memory usage
+            if (performance.memory) {
+                metrics.memoryUsage = performance.memory.usedJSHeapSize / 1024 / 1024;
+            }
+            
+            return metrics;
+        }
+        
+        function displayMetrics() {
+            const metricsGrid = document.getElementById('metrics-grid');
+            const metrics = [
+                {
+                    name: 'Initial Render',
+                    original: originalMetrics.initialRender,
+                    optimized: optimizedMetrics.initialRender,
+                    unit: 'ms'
+                },
+                {
+                    name: 'Filter Change',
+                    original: originalMetrics.filterChange,
+                    optimized: optimizedMetrics.filterChange,
+                    unit: 'ms'
+                },
+                {
+                    name: 'Chart Switch',
+                    original: originalMetrics.chartSwitch,
+                    optimized: optimizedMetrics.chartSwitch,
+                    unit: 'ms'
+                },
+                {
+                    name: 'Memory Usage',
+                    original: originalMetrics.memoryUsage,
+                    optimized: optimizedMetrics.memoryUsage,
+                    unit: 'MB'
+                }
+            ];
+            
+            metrics.forEach(metric => {
+                const improvement = ((metric.original - metric.optimized) / metric.original * 100).toFixed(1);
+                const isImproved = improvement > 0;
+                
+                const card = document.createElement('div');
+                card.className = 'metric-card';
+                card.innerHTML = `
+                    <h4>${metric.name}</h4>
+                    <div class="metric-value">
+                        ${metric.optimized.toFixed(2)} ${metric.unit}
+                    </div>
+                    <div class="metric-improvement ${isImproved ? 'improvement-positive' : 'improvement-negative'}">
+                        ${isImproved ? '↓' : '↑'} ${Math.abs(improvement)}% 
+                        ${isImproved ? 'faster' : 'slower'}
+                    </div>
+                    <div style="font-size: 12px; color: #9ca3af; margin-top: 5px;">
+                        Original: ${metric.original.toFixed(2)} ${metric.unit}
+                    </div>
+                `;
+                
+                metricsGrid.appendChild(card);
+            });
+        }
+        
+        // Auto-load versions on page load
+        window.onload = () => {
+            loadBothVersions();
+        };
+    </script>
+</body>
+</html>

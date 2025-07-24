@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Tracker - Error Handled Version</title>
+    
+    <!-- React and ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="App.css">
+    <link rel="stylesheet" href="error-styles.css">
+    
+    <!-- Error Handling System -->
+    <script src="error-handler.js"></script>
+    <script src="error-components.js"></script>
+    
+    <!-- Storage System -->
+    <script src="storage.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <!-- Demo Data Generator -->
+    <script src="demo-data.js"></script>
+    
+    <!-- Charts Component -->
+    <script src="Charts.js"></script>
+    
+    <!-- Main App with Error Handling -->
+    <script src="App-error-handled.js"></script>
+    
+    <!-- Global Error Handler -->
+    <script>
+        // Global error handler for uncaught errors
+        window.addEventListener('error', function(event) {
+            console.error('Global error caught:', event.error);
+            
+            if (window.errorLogger) {
+                window.errorLogger.log(
+                    event.error,
+                    window.ErrorTypes?.UNKNOWN || 'UNKNOWN_ERROR',
+                    window.ErrorSeverity?.HIGH || 'high',
+                    {
+                        message: event.message,
+                        filename: event.filename,
+                        lineno: event.lineno,
+                        colno: event.colno
+                    }
+                );
+            }
+            
+            // Prevent default error handling in production
+            if (window.location.hostname !== 'localhost' && 
+                window.location.hostname !== '127.0.0.1') {
+                event.preventDefault();
+            }
+        });
+        
+        // Handle unhandled promise rejections
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('Unhandled promise rejection:', event.reason);
+            
+            if (window.errorLogger) {
+                window.errorLogger.log(
+                    event.reason instanceof Error ? event.reason : new Error(event.reason),
+                    window.ErrorTypes?.UNKNOWN || 'UNKNOWN_ERROR',
+                    window.ErrorSeverity?.HIGH || 'high',
+                    {
+                        promise: event.promise,
+                        reason: event.reason
+                    }
+                );
+            }
+            
+            // Prevent default handling in production
+            if (window.location.hostname !== 'localhost' && 
+                window.location.hostname !== '127.0.0.1') {
+                event.preventDefault();
+            }
+        });
+        
+        // Storage quota check on load
+        if ('storage' in navigator && 'estimate' in navigator.storage) {
+            navigator.storage.estimate().then(function(estimate) {
+                const percentUsed = (estimate.usage / estimate.quota) * 100;
+                
+                if (percentUsed > 90) {
+                    console.warn(`Storage usage is at ${percentUsed.toFixed(2)}%`);
+                    
+                    if (window.errorLogger) {
+                        window.errorLogger.log(
+                            new Error('Storage quota warning'),
+                            window.ErrorTypes?.STORAGE || 'STORAGE_ERROR',
+                            window.ErrorSeverity?.MEDIUM || 'medium',
+                            {
+                                usage: estimate.usage,
+                                quota: estimate.quota,
+                                percentUsed: percentUsed
+                            }
+                        );
+                    }
+                }
+            });
+        }
+        
+        // Periodic health check
+        setInterval(function() {
+            try {
+                // Check if localStorage is accessible
+                const testKey = '__localStorage_test__';
+                localStorage.setItem(testKey, '1');
+                localStorage.removeItem(testKey);
+            } catch (e) {
+                console.error('localStorage health check failed:', e);
+                
+                if (window.errorLogger) {
+                    window.errorLogger.log(
+                        e,
+                        window.ErrorTypes?.STORAGE || 'STORAGE_ERROR',
+                        window.ErrorSeverity?.CRITICAL || 'critical',
+                        {
+                            healthCheck: 'localStorage'
+                        }
+                    );
+                }
+            }
+        }, 60000); // Check every minute
+    </script>
+</body>
+</html>

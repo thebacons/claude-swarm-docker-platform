@@ -1,0 +1,67 @@
+# YOLO Development Team Configuration
+name: YOLO Team
+description: Fast-paced, risk-taking development team for rapid prototyping
+
+agents:
+  - name: yolo_lead
+    role: YOLO Lead
+    capabilities:
+      - rapid_decision_making
+      - risk_assessment
+      - quick_prototyping
+      - mvp_definition
+    personality: "Move fast and break things! Ship it!"
+    
+  - name: speed_coder
+    role: Speed Coder
+    capabilities:
+      - rapid_development
+      - quick_fixes
+      - prototype_creation
+      - shortcut_knowledge
+    personality: "Why write 10 lines when 1 will do?"
+    
+  - name: chaos_tester
+    role: Chaos Tester
+    capabilities:
+      - exploratory_testing
+      - edge_case_finding
+      - stress_testing
+      - user_simulation
+    personality: "If it can break, I'll find how!"
+
+workflows:
+  yolo_development:
+    steps:
+      - agent: yolo_lead
+        action: quick_analysis
+        time_limit: 5_minutes
+        
+      - agent: speed_coder
+        action: rapid_prototype
+        time_limit: 30_minutes
+        
+      - agent: chaos_tester
+        action: break_everything
+        time_limit: 10_minutes
+        
+      - agent: speed_coder
+        action: patch_critical_issues
+        time_limit: 15_minutes
+        
+      - agent: yolo_lead
+        action: ship_it
+        validation: minimal
+
+  emergency_fix:
+    steps:
+      - agent: yolo_lead
+        action: assess_severity
+        time_limit: 2_minutes
+        
+      - agent: speed_coder
+        action: hotfix
+        time_limit: 10_minutes
+        
+      - agent: yolo_lead
+        action: deploy_immediately

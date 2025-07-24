@@ -1,0 +1,42 @@
+# Basic Claude Swarm Configuration
+name: Basic Swarm
+description: A simple swarm configuration for basic tasks
+
+agents:
+  - name: coordinator
+    role: Lead Coordinator
+    capabilities:
+      - task_decomposition
+      - agent_assignment
+      - progress_tracking
+    
+  - name: researcher
+    role: Research Agent
+    capabilities:
+      - web_search
+      - documentation_analysis
+      - information_synthesis
+    
+  - name: coder
+    role: Code Agent
+    capabilities:
+      - code_generation
+      - code_review
+      - refactoring
+
+workflows:
+  default:
+    steps:
+      - agent: coordinator
+        action: analyze_request
+      - agent: coordinator
+        action: assign_tasks
+      - parallel:
+          - agent: researcher
+            action: gather_information
+          - agent: coder
+            action: prepare_environment
+      - agent: coder
+        action: implement_solution
+      - agent: coordinator
+        action: review_results

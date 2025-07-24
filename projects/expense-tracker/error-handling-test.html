@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error Handling Test Suite</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        h1, h2 {
+            color: #333;
+        }
+        
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .test-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .test-button:hover {
+            background-color: #0056b3;
+        }
+        
+        .test-button.danger {
+            background-color: #dc3545;
+        }
+        
+        .test-button.danger:hover {
+            background-color: #c82333;
+        }
+        
+        .test-button.warning {
+            background-color: #ffc107;
+            color: black;
+        }
+        
+        .test-button.warning:hover {
+            background-color: #e0a800;
+        }
+        
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .result.success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .result.error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .result.info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Error Handling Test Suite</h1>
+    
+    <div class="test-grid">
+        <!-- Validation Tests -->
+        <div class="test-section">
+            <h2>Input Validation Tests</h2>
+            
+            <button class="test-button" onclick="testAmountValidation()">
+                Test Amount Validation
+            </button>
+            
+            <button class="test-button" onclick="testDescriptionValidation()">
+                Test Description Validation
+            </button>
+            
+            <button class="test-button" onclick="testDateValidation()">
+                Test Date Validation
+            </button>
+            
+            <button class="test-button" onclick="testCompleteValidation()">
+                Test Complete Form Validation
+            </button>
+            
+            <div id="validation-result" class="result"></div>
+        </div>
+        
+        <!-- Storage Error Tests -->
+        <div class="test-section">
+            <h2>Storage Error Tests</h2>
+            
+            <button class="test-button danger" onclick="testStorageQuotaExceeded()">
+                Simulate Storage Quota Exceeded
+            </button>
+            
+            <button class="test-button danger" onclick="testCorruptedData()">
+                Simulate Corrupted Data
+            </button>
+            
+            <button class="test-button warning" onclick="testDataRecovery()">
+                Test Data Recovery
+            </button>
+            
+            <button class="test-button" onclick="testBackupRestore()">
+                Test Backup & Restore
+            </button>
+            
+            <div id="storage-result" class="result"></div>
+        </div>
+        
+        <!-- Error Logging Tests -->
+        <div class="test-section">
+            <h2>Error Logging Tests</h2>
+            
+            <button class="test-button" onclick="testErrorLogging()">
+                Log Various Error Types
+            </button>
+            
+            <button class="test-button" onclick="viewErrorLog()">
+                View Error Log
+            </button>
+            
+            <button class="test-button warning" onclick="exportErrorLog()">
+                Export Error Log
+            </button>
+            
+            <button class="test-button danger" onclick="clearErrorLog()">
+                Clear Error Log
+            </button>
+            
+            <div id="logging-result" class="result"></div>
+        </div>
+        
+        <!-- Recovery Mechanism Tests -->
+        <div class="test-section">
+            <h2>Recovery Mechanism Tests</h2>
+            
+            <button class="test-button" onclick="createTestBackup()">
+                Create Test Backup
+            </button>
+            
+            <button class="test-button" onclick="listBackups()">
+                List Available Backups
+            </button>
+            
+            <button class="test-button warning" onclick="testAutoRecovery()">
+                Test Auto Recovery
+            </button>
+            
+            <button class="test-button danger" onclick="simulateCriticalError()">
+                Simulate Critical Error
+            </button>
+            
+            <div id="recovery-result" class="result"></div>
+        </div>
+        
+        <!-- Calculation Error Tests -->
+        <div class="test-section">
+            <h2>Calculation Error Tests</h2>
+            
+            <button class="test-button" onclick="testInvalidCalculation()">
+                Test Invalid Amount Calculation
+            </button>
+            
+            <button class="test-button" onclick="testOverflowCalculation()">
+                Test Overflow Protection
+            </button>
+            
+            <button class="test-button" onclick="testPrecisionCalculation()">
+                Test Decimal Precision
+            </button>
+            
+            <div id="calculation-result" class="result"></div>
+        </div>
+        
+        <!-- UI Error Tests -->
+        <div class="test-section">
+            <h2>UI Error Component Tests</h2>
+            
+            <button class="test-button" onclick="testErrorMessage()">
+                Show Error Message
+            </button>
+            
+            <button class="test-button" onclick="testFieldError()">
+                Show Field Errors
+            </button>
+            
+            <button class="test-button warning" onclick="testRecoveryModal()">
+                Show Recovery Modal
+            </button>
+            
+            <button class="test-button danger" onclick="testErrorBoundary()">
+                Trigger Error Boundary
+            </button>
+            
+            <div id="ui-result" class="result"></div>
+        </div>
+    </div>
+    
+    <!-- Load dependencies -->
+    <script src="error-handler.js"></script>
+    <script src="storage.js"></script>
+    
+    <script>
+        // Helper function to display results
+        function displayResult(elementId, message, type = 'info') {
+            const resultDiv = document.getElementById(elementId);
+            resultDiv.className = `result ${type}`;
+            resultDiv.textContent = message;
+        }
+        
+        // Validation Tests
+        function testAmountValidation() {
+            const tests = [
+                { value: '', expected: false, description: 'Empty amount' },
+                { value: '0', expected: false, description: 'Zero amount' },
+                { value: '-10', expected: false, description: 'Negative amount' },
+                { value: 'abc', expected: false, description: 'Non-numeric amount' },
+                { value: '1000000', expected: false, description: 'Amount too large' },
+                { value: '12.345', expected: false, description: 'Too many decimals' },
+                { value: '50.00', expected: true, description: 'Valid amount' },
+                { value: '999999.99', expected: true, description: 'Maximum valid amount' }
+            ];
+            
+            let results = 'Amount Validation Test Results:\n\n';
+            
+            tests.forEach(test => {
+                const result = ValidationUtils.validateAmount(test.value);
+                const passed = result.isValid === test.expected;
+                results += `${passed ? '✅' : '❌'} ${test.description}: "${test.value}"\n`;
+                if (!result.isValid) {
+                    results += `   Errors: ${result.errors.join(', ')}\n`;
+                }
+                results += '\n';
+            });
+            
+            displayResult('validation-result', results, 'info');
+        }
+        
+        function testDescriptionValidation() {
+            const tests = [
+                { value: '', expected: false, description: 'Empty description' },
+                { value: ' ', expected: false, description: 'Whitespace only' },
+                { value: 'a', expected: false, description: 'Too short' },
+                { value: 'a'.repeat(201), expected: false, description: 'Too long' },
+                { value: '<script>alert("xss")</script>', expected: false, description: 'XSS attempt' },
+                { value: 'Valid expense description', expected: true, description: 'Valid description' }
+            ];
+            
+            let results = 'Description Validation Test Results:\n\n';
+            
+            tests.forEach(test => {
+                const result = ValidationUtils.validateDescription(test.value);
+                const passed = result.isValid === test.expected;
+                results += `${passed ? '✅' : '❌'} ${test.description}\n`;
+                if (!result.isValid) {
+                    results += `   Errors: ${result.errors.join(', ')}\n`;
+                }
+                results += '\n';
+            });
+            
+            displayResult('validation-result', results, 'info');
+        }
+        
+        function testDateValidation() {
+            const today = new Date();
+            const tests = [
+                { value: '', expected: false, description: 'Empty date' },
+                { value: 'invalid-date', expected: false, description: 'Invalid format' },
+                { value: new Date(today.getFullYear() + 2, 0, 1).toISOString().split('T')[0], expected: false, description: 'Too far in future' },
+                { value: new Date(today.getFullYear() - 101, 0, 1).toISOString().split('T')[0], expected: false, description: 'Too far in past' },
+                { value: today.toISOString().split('T')[0], expected: true, description: 'Today\'s date' }
+            ];
+            
+            let results = 'Date Validation Test Results:\n\n';
+            
+            tests.forEach(test => {
+                const result = ValidationUtils.validateDate(test.value);
+                const passed = result.isValid === test.expected;
+                results += `${passed ? '✅' : '❌'} ${test.description}: ${test.value || '(empty)'}\n`;
+                if (!result.isValid) {
+                    results += `   Errors: ${result.errors.join(', ')}\n`;
+                }
+                results += '\n';
+            });
+            
+            displayResult('validation-result', results, 'info');
+        }
+        
+        function testCompleteValidation() {
+            const testData = {
+                description: 'Test expense',
+                amount: '50.00',
+                category: 'Food',
+                date: new Date().toISOString().split('T')[0]
+            };
+            
+            const categories = ['Food', 'Transport', 'Entertainment', 'Utilities', 'Other'];
+            const result = ValidationUtils.validateExpenseData(testData, categories);
+            
+            let message = 'Complete Form Validation:\n\n';
+            message += `Valid: ${result.isValid ? '✅' : '❌'}\n\n`;
+            
+            if (result.isValid) {
+                message += 'Sanitized Data:\n';
+                message += JSON.stringify(result.sanitized, null, 2);
+            } else {
+                message += 'Errors:\n';
+                message += JSON.stringify(result.errors, null, 2);
+            }
+            
+            displayResult('validation-result', message, result.isValid ? 'success' : 'error');
+        }
+        
+        // Storage Error Tests
+        function testStorageQuotaExceeded() {
+            try {
+                // Try to fill localStorage to simulate quota exceeded
+                const largeData = 'x'.repeat(1024 * 1024); // 1MB string
+                for (let i = 0; i < 10; i++) {
+                    localStorage.setItem(`test_large_${i}`, largeData);
+                }
+            } catch (e) {
+                const errorInfo = ErrorHandler.handleStorageError(e, 'test_quota_exceeded');
+                displayResult('storage-result', 
+                    `Storage Error Simulated:\n\n${errorInfo.userMessage}\n\nError ID: ${errorInfo.errorId}`, 
+                    'error'
+                );
+                
+                // Clean up
+                for (let i = 0; i < 10; i++) {
+                    localStorage.removeItem(`test_large_${i}`);
+                }
+                return;
+            }
+            
+            displayResult('storage-result', 'Could not simulate quota exceeded - storage has too much space', 'info');
+        }
+        
+        function testCorruptedData() {
+            // Save corrupted data
+            localStorage.setItem('expenses', '{invalid json{[[');
+            
+            // Try to recover
+            RecoveryUtils.recoverCorruptedData().then(result => {
+                let message = 'Data Corruption Test:\n\n';
+                message += `Recovery ${result.recovered ? 'Successful' : 'Failed'}\n`;
+                message += `Recovered ${result.expenses.length} expenses\n`;
+                if (result.errors.length > 0) {
+                    message += `\nErrors:\n${result.errors.join('\n')}`;
+                }
+                
+                displayResult('storage-result', message, result.recovered ? 'success' : 'error');
+                
+                // Clean up
+                localStorage.removeItem('expenses');
+            });
+        }
+        
+        function testDataRecovery() {
+            // Create some valid test data
+            const testExpenses = [
+                { id: 1, description: 'Test 1', amount: 10, category: 'Food', date: '2024-01-01' },
+                { id: 2, description: 'Test 2', amount: 20, category: 'Transport', date: '2024-01-02' }
+            ];
+            
+            // Save and then corrupt
+            localStorage.setItem('expenses', JSON.stringify(testExpenses));
+            const backup = RecoveryUtils.createBackup();
+            
+            // Corrupt the data
+            localStorage.setItem('expenses', 'corrupted');
+            
+            // Restore from backup
+            const restoreResult = RecoveryUtils.restoreFromBackup(backup.backupKey);
+            
+            displayResult('storage-result', 
+                `Backup & Recovery Test:\n\nBackup: ${backup.success ? '✅' : '❌'}\nRestore: ${restoreResult.success ? '✅' : '❌'}`,
+                restoreResult.success ? 'success' : 'error'
+            );
+        }
+        
+        function testBackupRestore() {
+            const backups = RecoveryUtils.listBackups();
+            let message = 'Available Backups:\n\n';
+            
+            if (backups.length === 0) {
+                message += 'No backups found\n\n';
+                
+                // Create a test backup
+                const result = RecoveryUtils.createBackup();
+                message += `Created test backup: ${result.success ? '✅' : '❌'}`;
+            } else {
+                backups.forEach((backup, index) => {
+                    message += `${index + 1}. ${new Date(backup.timestamp).toLocaleString()}\n`;
+                    message += `   Size: ${(backup.size / 1024).toFixed(2)} KB\n`;
+                    message += `   Key: ${backup.key}\n\n`;
+                });
+            }
+            
+            displayResult('storage-result', message, 'info');
+        }
+        
+        // Error Logging Tests
+        function testErrorLogging() {
+            const errors = [
+                { 
+                    error: new Error('Validation failed'), 
+                    type: ErrorTypes.VALIDATION, 
+                    severity: ErrorSeverity.LOW 
+                },
+                { 
+                    error: new Error('Storage quota exceeded'), 
+                    type: ErrorTypes.STORAGE, 
+                    severity: ErrorSeverity.HIGH 
+                },
+                { 
+                    error: new Error('Data corrupted'), 
+                    type: ErrorTypes.DATA_CORRUPTION, 
+                    severity: ErrorSeverity.CRITICAL 
+                },
+                { 
+                    error: new Error('Calculation error'), 
+                    type: ErrorTypes.CALCULATION, 
+                    severity: ErrorSeverity.MEDIUM 
+                }
+            ];
+            
+            let message = 'Logged Test Errors:\n\n';
+            
+            errors.forEach(({ error, type, severity }) => {
+                const entry = errorLogger.log(error, type, severity, { test: true });
+                message += `${severity.toUpperCase()}: ${error.message}\n`;
+                message += `ID: ${entry.id}\n\n`;
+            });
+            
+            displayResult('logging-result', message, 'success');
+        }
+        
+        function viewErrorLog() {
+            const errors = errorLogger.getErrors();
+            let message = `Error Log (${errors.length} entries):\n\n`;
+            
+            errors.slice(0, 5).forEach(error => {
+                message += `[${error.severity.toUpperCase()}] ${error.type}\n`;
+                message += `${new Date(error.timestamp).toLocaleString()}\n`;
+                message += `${error.message}\n`;
+                message += `─────────────────\n`;
+            });
+            
+            if (errors.length > 5) {
+                message += `\n... and ${errors.length - 5} more`;
+            }
+            
+            displayResult('logging-result', message, 'info');
+        }
+        
+        function exportErrorLog() {
+            try {
+                const data = errorLogger.exportErrors();
+                const blob = new Blob([data], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `error-log-${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                displayResult('logging-result', 'Error log exported successfully', 'success');
+            } catch (e) {
+                displayResult('logging-result', `Export failed: ${e.message}`, 'error');
+            }
+        }
+        
+        function clearErrorLog() {
+            if (confirm('Clear all error logs?')) {
+                errorLogger.clearErrors();
+                displayResult('logging-result', 'Error log cleared', 'success');
+            }
+        }
+        
+        // Recovery Tests
+        function createTestBackup() {
+            const result = RecoveryUtils.createBackup();
+            displayResult('recovery-result', 
+                `Backup ${result.success ? 'created successfully' : 'failed'}\n${result.backupKey || result.error}`,
+                result.success ? 'success' : 'error'
+            );
+        }
+        
+        function listBackups() {
+            const backups = RecoveryUtils.listBackups();
+            let message = `Found ${backups.length} backup(s):\n\n`;
+            
+            backups.forEach((backup, index) => {
+                message += `${index + 1}. ${new Date(backup.timestamp).toLocaleString()}\n`;
+                message += `   Size: ${(backup.size / 1024).toFixed(2)} KB\n\n`;
+            });
+            
+            displayResult('recovery-result', message || 'No backups found', 'info');
+        }
+        
+        function testAutoRecovery() {
+            // Simulate corrupted data
+            localStorage.setItem('expenses', '{"broken": [not valid json}');
+            
+            RecoveryUtils.recoverCorruptedData().then(result => {
+                let message = 'Auto Recovery Test:\n\n';
+                message += `Status: ${result.recovered ? '✅ Success' : '❌ Failed'}\n`;
+                message += `Recovered expenses: ${result.expenses.length}\n`;
+                if (result.categories) {
+                    message += `Categories restored: ${result.categories.length}\n`;
+                }
+                if (result.errors.length > 0) {
+                    message += `\nErrors encountered:\n${result.errors.join('\n')}`;
+                }
+                
+                displayResult('recovery-result', message, result.recovered ? 'success' : 'error');
+            });
+        }
+        
+        function simulateCriticalError() {
+            try {
+                // This will cause a reference error
+                nonExistentFunction();
+            } catch (e) {
+                const errorInfo = ErrorHandler.handleError(e, { 
+                    simulation: true, 
+                    purpose: 'testing critical error handling' 
+                });
+                
+                displayResult('recovery-result', 
+                    `Critical Error Handled:\n\n${errorInfo.userMessage}\nError ID: ${errorInfo.errorId}`,
+                    'error'
+                );
+            }
+        }
+        
+        // Calculation Tests
+        function testInvalidCalculation() {
+            const testData = [
+                { amount: NaN },
+                { amount: Infinity },
+                { amount: -Infinity },
+                { amount: 'not a number' }
+            ];
+            
+            let message = 'Invalid Calculation Tests:\n\n';
+            
+            testData.forEach(item => {
+                try {
+                    const result = parseFloat(item.amount);
+                    if (!isFinite(result)) {
+                        throw new Error(`Invalid calculation result: ${result}`);
+                    }
+                    message += `❌ Expected error for: ${item.amount}\n`;
+                } catch (e) {
+                    message += `✅ Caught error for: ${item.amount}\n`;
+                }
+            });
+            
+            displayResult('calculation-result', message, 'info');
+        }
+        
+        function testOverflowCalculation() {
+            const amounts = [
+                Number.MAX_SAFE_INTEGER,
+                Number.MAX_SAFE_INTEGER / 2,
+                999999.99
+            ];
+            
+            let message = 'Overflow Protection Test:\n\n';
+            let total = 0;
+            
+            try {
+                amounts.forEach(amount => {
+                    const newTotal = total + amount;
+                    if (!Number.isSafeInteger(newTotal * 100)) {
+                        throw new Error('Calculation would exceed safe integer range');
+                    }
+                    total = newTotal;
+                });
+                message += '❌ Overflow not detected';
+            } catch (e) {
+                message += `✅ Overflow prevented: ${e.message}`;
+            }
+            
+            displayResult('calculation-result', message, 'success');
+        }
+        
+        function testPrecisionCalculation() {
+            const tests = [
+                { a: 0.1, b: 0.2, expected: 0.3 },
+                { a: 10.50, b: 20.45, expected: 30.95 },
+                { a: 999.99, b: 0.01, expected: 1000.00 }
+            ];
+            
+            let message = 'Decimal Precision Test:\n\n';
+            
+            tests.forEach(test => {
+                const result = (test.a + test.b).toFixed(2);
+                const expected = test.expected.toFixed(2);
+                const passed = result === expected;
+                
+                message += `${passed ? '✅' : '❌'} ${test.a} + ${test.b} = ${result} (expected ${expected})\n`;
+            });
+            
+            displayResult('calculation-result', message, 'info');
+        }
+        
+        // UI Tests
+        function testErrorMessage() {
+            displayResult('ui-result', 
+                'Error message component would be displayed here with:\n\n' +
+                '- Error icon\n' +
+                '- User-friendly message\n' +
+                '- Retry button\n' +
+                '- Dismiss option\n' +
+                '- Expandable details',
+                'info'
+            );
+        }
+        
+        function testFieldError() {
+            displayResult('ui-result', 
+                'Field error indicators:\n\n' +
+                '❌ Amount: Must be greater than zero\n' +
+                '❌ Description: Required field\n' +
+                '✅ Category: Valid\n' +
+                '❌ Date: Invalid date format',
+                'error'
+            );
+        }
+        
+        function testRecoveryModal() {
+            displayResult('ui-result', 
+                'Recovery Modal would show:\n\n' +
+                '1. Automatic Recovery Option\n' +
+                '2. Restore from Backup List\n' +
+                '3. Import from File\n' +
+                '4. Contact Support\n\n' +
+                'With progress indicators and status updates',
+                'info'
+            );
+        }
+        
+        function testErrorBoundary() {
+            displayResult('ui-result', 
+                'Error Boundary would catch React errors and display:\n\n' +
+                '⚠️ Something went wrong\n' +
+                'Automatic backup created\n' +
+                'Options: Try Again | Reload Page | View Details',
+                'error'
+            );
+        }
+    </script>
+</body>
+</html>

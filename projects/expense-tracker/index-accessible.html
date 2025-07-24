@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Accessible expense tracker application with charts and analytics">
+    <title>Expense Tracker - Accessible Version</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="App.css">
+    <link rel="stylesheet" href="accessible-styles.css">
+    
+    <!-- React and ReactDOM from CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel for JSX transformation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+    <!-- Skip Navigation Links -->
+    <div class="skip-links">
+        <a href="#main-content" class="skip-link">Skip to main content</a>
+        <a href="#expense-form" class="skip-link">Skip to expense form</a>
+        <a href="#expense-list" class="skip-link">Skip to expense list</a>
+        <a href="#charts-section" class="skip-link">Skip to charts</a>
+    </div>
+
+    <!-- Screen Reader Announcements -->
+    <div class="sr-only" aria-live="polite" aria-atomic="true" id="sr-announcements"></div>
+    <div class="sr-only" aria-live="assertive" aria-atomic="true" id="sr-alerts"></div>
+
+    <!-- Main Application Container -->
+    <div id="root"></div>
+    
+    <!-- Application Scripts -->
+    <script type="text/babel" src="demo-data.js"></script>
+    <script type="text/babel" src="Charts-accessible.js"></script>
+    <script type="text/babel" src="App-accessible.js"></script>
+    
+    <!-- Accessibility Enhancement Script -->
+    <script src="accessibility-enhancements.js"></script>
+    
+    <!-- Performance Monitor (optional) -->
+    <script src="performance-monitor.js"></script>
+    <script>
+        // Enhanced keyboard shortcuts with accessibility
+        document.addEventListener('DOMContentLoaded', () => {
+            // Announce keyboard shortcuts to screen readers
+            const shortcutsInfo = document.createElement('div');
+            shortcutsInfo.className = 'sr-only';
+            shortcutsInfo.setAttribute('role', 'region');
+            shortcutsInfo.setAttribute('aria-label', 'Keyboard shortcuts');
+            shortcutsInfo.innerHTML = `
+                <h2>Keyboard Shortcuts</h2>
+                <ul>
+                    <li>Alt + N: Add new expense</li>
+                    <li>Alt + C: View charts</li>
+                    <li>Alt + E: View expenses</li>
+                    <li>Alt + F: Focus filter</li>
+                    <li>Escape: Close dialogs</li>
+                    <li>Ctrl + Shift + P: Toggle performance monitor</li>
+                </ul>
+            `;
+            document.body.appendChild(shortcutsInfo);
+        });
+
+        // Enhanced keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            // Performance monitor toggle
+            if (e.ctrlKey && e.shiftKey && e.key === 'P') {
+                e.preventDefault();
+                if (window.performanceMonitor?.isMonitoring) {
+                    window.performanceMonitor.stop();
+                    announceToScreenReader('Performance monitoring stopped');
+                } else {
+                    window.performanceMonitor?.start();
+                    announceToScreenReader('Performance monitoring started');
+                }
+            }
+
+            // Alt + N: Focus new expense form
+            if (e.altKey && e.key === 'n') {
+                e.preventDefault();
+                const formInput = document.querySelector('#description');
+                if (formInput) {
+                    formInput.focus();
+                    announceToScreenReader('Add new expense form focused');
+                }
+            }
+
+            // Alt + C: Switch to charts view
+            if (e.altKey && e.key === 'c') {
+                e.preventDefault();
+                const chartsTab = document.querySelector('[data-view="charts"]');
+                if (chartsTab) {
+                    chartsTab.click();
+                }
+            }
+
+            // Alt + E: Switch to expenses view
+            if (e.altKey && e.key === 'e') {
+                e.preventDefault();
+                const expensesTab = document.querySelector('[data-view="expenses"]');
+                if (expensesTab) {
+                    expensesTab.click();
+                }
+            }
+
+            // Alt + F: Focus filter
+            if (e.altKey && e.key === 'f') {
+                e.preventDefault();
+                const filter = document.querySelector('#filter');
+                if (filter) {
+                    filter.focus();
+                    announceToScreenReader('Category filter focused');
+                }
+            }
+        });
+
+        // Helper function to announce to screen readers
+        function announceToScreenReader(message, priority = 'polite') {
+            const announcer = document.getElementById(priority === 'assertive' ? 'sr-alerts' : 'sr-announcements');
+            if (announcer) {
+                announcer.textContent = message;
+                // Clear after announcement
+                setTimeout(() => {
+                    announcer.textContent = '';
+                }, 1000);
+            }
+        }
+
+        // Make announcement function globally available
+        window.announceToScreenReader = announceToScreenReader;
+    </script>
+</body>
+</html>

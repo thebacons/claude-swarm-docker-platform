@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Tracker - Complete Edition</title>
+    
+    <!-- Primary CSS -->
+    <link rel="stylesheet" href="App.css">
+    
+    <!-- Additional Enhancement CSS -->
+    <link rel="stylesheet" href="accessible-styles.css">
+    <link rel="stylesheet" href="error-styles.css">
+    
+    <!-- React and ReactDOM from CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel for JSX transformation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f9fafb; display: flex; align-items: center; justify-content: center; z-index: 9999;">
+        <div style="text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">💰</div>
+            <div style="font-size: 1.5rem; color: #6366f1; font-weight: 600;">Loading Expense Tracker...</div>
+        </div>
+    </div>
+    
+    <!-- Main Application Root -->
+    <div id="root"></div>
+    
+    <!-- Core Utilities and Storage -->
+    <script src="storage.js"></script>
+    <script src="error-handler.js"></script>
+    
+    <!-- Application Components -->
+    <script type="text/babel" src="demo-data.js"></script>
+    <script type="text/babel" src="Charts.js"></script>
+    <script type="text/babel" src="ExpenseForm.js"></script>
+    <script type="text/babel" src="error-components.js"></script>
+    <script type="text/babel" src="accessibility-enhancements.js"></script>
+    <script type="text/babel" src="App.js"></script>
+    
+    <!-- Performance Monitor (optional) -->
+    <script src="performance-monitor.js"></script>
+    
+    <!-- Application Initialization -->
+    <script>
+        // Hide loading screen when app is ready
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const loadingScreen = document.getElementById('loading-screen');
+                if (loadingScreen) {
+                    loadingScreen.style.transition = 'opacity 0.3s ease';
+                    loadingScreen.style.opacity = '0';
+                    setTimeout(() => loadingScreen.remove(), 300);
+                }
+            }, 500);
+        });
+        
+        // Global error handler
+        window.addEventListener('error', (event) => {
+            console.error('Global error:', event.error);
+            if (window.ErrorHandler) {
+                window.ErrorHandler.handleError(event.error, 'global');
+            }
+        });
+        
+        // Unhandled promise rejection handler
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('Unhandled promise rejection:', event.reason);
+            if (window.ErrorHandler) {
+                window.ErrorHandler.handleError(event.reason, 'promise');
+            }
+        });
+        
+        // Performance monitoring shortcut (Ctrl+Shift+P)
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.shiftKey && e.key === 'P') {
+                e.preventDefault();
+                if (window.performanceMonitor) {
+                    if (window.performanceMonitor.isMonitoring) {
+                        window.performanceMonitor.stop();
+                        console.log('Performance monitoring stopped');
+                    } else {
+                        window.performanceMonitor.start();
+                        console.log('Performance monitoring started');
+                    }
+                }
+            }
+        });
+        
+        // Accessibility shortcut (Alt+A) - Toggle high contrast mode
+        document.addEventListener('keydown', (e) => {
+            if (e.altKey && e.key === 'a') {
+                e.preventDefault();
+                document.body.classList.toggle('high-contrast');
+                const isHighContrast = document.body.classList.contains('high-contrast');
+                localStorage.setItem('highContrast', isHighContrast);
+                console.log('High contrast mode:', isHighContrast ? 'enabled' : 'disabled');
+            }
+        });
+        
+        // Load saved accessibility preferences
+        if (localStorage.getItem('highContrast') === 'true') {
+            document.body.classList.add('high-contrast');
+        }
+    </script>
+</body>
+</html>

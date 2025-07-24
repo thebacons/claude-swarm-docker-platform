@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Tracker - Optimized Version</title>
+    
+    <!-- Preconnect to improve font loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- React (Production versions for better performance) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="App.css">
+    
+    <!-- Performance monitoring -->
+    <script>
+        // Measure page load performance
+        window.addEventListener('load', () => {
+            const perfData = performance.getEntriesByType('navigation')[0];
+            console.log('Page Load Metrics:', {
+                'DNS Lookup': perfData.domainLookupEnd - perfData.domainLookupStart,
+                'TCP Connection': perfData.connectEnd - perfData.connectStart,
+                'Request/Response': perfData.responseEnd - perfData.requestStart,
+                'DOM Processing': perfData.domComplete - perfData.domInteractive,
+                'Total Load Time': perfData.loadEventEnd - perfData.navigationStart
+            });
+        });
+
+        // Monitor long tasks
+        if ('PerformanceObserver' in window) {
+            const observer = new PerformanceObserver((list) => {
+                for (const entry of list.getEntries()) {
+                    console.warn('Long Task detected:', {
+                        duration: entry.duration,
+                        startTime: entry.startTime,
+                        name: entry.name
+                    });
+                }
+            });
+            observer.observe({ entryTypes: ['longtask'] });
+        }
+    </script>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <!-- Load utilities first -->
+    <script src="utils-optimized.js"></script>
+    
+    <!-- Load storage module -->
+    <script src="storage.js"></script>
+    
+    <!-- Load demo data generator -->
+    <script src="demo-data.js"></script>
+    
+    <!-- Load optimized Charts component -->
+    <script src="Charts-optimized.js"></script>
+    
+    <!-- Load optimized main App -->
+    <script src="App-optimized.js"></script>
+    
+    <!-- Performance optimization scripts -->
+    <script>
+        // Implement passive event listeners for better scroll performance
+        document.addEventListener('touchstart', function() {}, { passive: true });
+        document.addEventListener('touchmove', function() {}, { passive: true });
+        document.addEventListener('wheel', function() {}, { passive: true });
+        
+        // Prefetch optimization for faster subsequent loads
+        if ('requestIdleCallback' in window) {
+            requestIdleCallback(() => {
+                // Prefetch critical resources during idle time
+                const link = document.createElement('link');
+                link.rel = 'prefetch';
+                link.as = 'script';
+                link.href = 'Charts-optimized.js';
+                document.head.appendChild(link);
+            });
+        }
+        
+        // Enable React DevTools profiling in development
+        if (window.location.hostname === 'localhost') {
+            window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = {
+                supportsFiber: true,
+                inject: function() {},
+                onCommitFiberRoot: function() {},
+                onCommitFiberUnmount: function() {}
+            };
+        }
+    </script>
+</body>
+</html>

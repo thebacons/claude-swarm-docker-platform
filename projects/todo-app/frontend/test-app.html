@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo App Test - Complete Integration</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link rel="stylesheet" href="App.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .test-status {
+            background: #f0f0f0;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div id="test-status" class="test-status">Loading components...</div>
+    <div id="root"></div>
+    
+    <!-- Load components in correct order -->
+    <script type="text/babel" src="TodoItem.js"></script>
+    <script type="text/babel" src="App.js"></script>
+    
+    <!-- Initialize app with error handling -->
+    <script type="text/babel">
+        const statusDiv = document.getElementById('test-status');
+        
+        try {
+            // Check if components are loaded
+            if (typeof App === 'undefined') {
+                throw new Error('App component not loaded');
+            }
+            if (typeof TodoItem === 'undefined') {
+                throw new Error('TodoItem component not loaded');
+            }
+            
+            // Render the app
+            const root = ReactDOM.createRoot(document.getElementById('root'));
+            root.render(<App />);
+            
+            statusDiv.className = 'test-status success';
+            statusDiv.textContent = '✅ App loaded successfully! Components integrated properly.';
+        } catch (error) {
+            statusDiv.className = 'test-status error';
+            statusDiv.textContent = `❌ Error: ${error.message}`;
+            console.error('App initialization error:', error);
+        }
+    </script>
+</body>
+</html>

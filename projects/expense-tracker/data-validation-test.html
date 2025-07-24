@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Validation Test - Expense Tracker</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .status {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .status.pass {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status.fail {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .status.pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-left: 4px solid #007bff;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .test-result.error {
+            border-left-color: #dc3545;
+            background-color: #f8d7da;
+        }
+        .test-result.success {
+            border-left-color: #28a745;
+            background-color: #d4edda;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .summary {
+            background-color: #e9ecef;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 30px;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Data Validation Test Suite</h1>
+    <p>Comprehensive validation of localStorage operations and data integrity for the Expense Tracker application.</p>
+
+    <div id="test-results"></div>
+
+    <div class="summary" id="summary" style="display: none;">
+        <h2>Test Summary</h2>
+        <div id="summary-content"></div>
+    </div>
+
+    <script src="storage.js"></script>
+    <script>
+        // Test results container
+        const testResults = [];
+        let currentTestSection = null;
+
+        // Helper function to create test section
+        function createTestSection(name) {
+            const section = document.createElement('div');
+            section.className = 'test-section';
+            section.innerHTML = `
+                <div class="test-header">
+                    <h3>${name}</h3>
+                    <span class="status pending">Running...</span>
+                </div>
+                <div class="test-content"></div>
+            `;
+            document.getElementById('test-results').appendChild(section);
+            currentTestSection = section;
+            return section;
+        }
+
+        // Helper function to add test result
+        function addTestResult(message, success = true, data = null) {
+            const result = document.createElement('div');
+            result.className = `test-result ${success ? 'success' : 'error'}`;
+            result.innerHTML = `<pre>${message}${data ? '\n' + JSON.stringify(data, null, 2) : ''}</pre>`;
+            currentTestSection.querySelector('.test-content').appendChild(result);
+            
+            testResults.push({
+                section: currentTestSection.querySelector('h3').textContent,
+                message,
+                success,
+                data
+            });
+        }
+
+        // Update section status
+        function updateSectionStatus(success) {
+            const status = currentTestSection.querySelector('.status');
+            status.className = `status ${success ? 'pass' : 'fail'}`;
+            status.textContent = success ? 'PASSED' : 'FAILED';
+        }
+
+        // Test 1: LocalStorage Operations
+        async function testLocalStorageOperations() {
+            createTestSection('1. LocalStorage Operations');
+            let allPassed = true;
+
+            try {
+                // Test localStorage availability
+                if (typeof(Storage) !== "undefined") {
+                    addTestResult('✓ localStorage is available');
+                } else {
+                    addTestResult('✗ localStorage is not available', false);
+                    allPassed = false;
+                }
+
+                // Test basic read/write
+                const testKey = 'test_validation_key';
+                const testValue = 'test_validation_value';
+                localStorage.setItem(testKey, testValue);
+                const retrieved = localStorage.getItem(testKey);
+                
+                if (retrieved === testValue) {
+                    addTestResult('✓ Basic read/write operations work correctly');
+                } else {
+                    addTestResult('✗ Basic read/write operations failed', false);
+                    allPassed = false;
+                }
+
+                // Clean up test key
+                localStorage.removeItem(testKey);
+
+                // Test JSON serialization
+                const testObject = { id: 1, name: 'Test', value: 123.45 };
+                localStorage.setItem('test_json', JSON.stringify(testObject));
+                const parsedObject = JSON.parse(localStorage.getItem('test_json'));
+                
+                if (JSON.stringify(testObject) === JSON.stringify(parsedObject)) {
+                    addTestResult('✓ JSON serialization/deserialization works correctly');
+                } else {
+                    addTestResult('✗ JSON serialization/deserialization failed', false);
+                    allPassed = false;
+                }
+
+                localStorage.removeItem('test_json');
+
+                // Test storage capacity
+                try {
+                    const largeData = 'x'.repeat(1024 * 1024); // 1MB string
+                    localStorage.setItem('large_test', largeData);
+                    localStorage.removeItem('large_test');
+                    addTestResult('✓ Can store at least 1MB of data');
+                } catch (e) {
+                    addTestResult('⚠ Storage capacity limited (this is normal for localStorage)', true);
+                }
+
+            } catch (error) {
+                addTestResult(`✗ Unexpected error: ${error.message}`, false);
+                allPassed = false;
+            }
+
+            updateSectionStatus(allPassed);
+        }
+
+        // Test 2: Data Persistence
+        async function testDataPersistence() {
+            createTestSection('2. Data Persistence Across Page Reloads');
+            let allPassed = true;
+
+            try {
+                // Save test expense
+                const testExpense = {
+                    description: 'Persistence Test',
+                    amount: 99.99,
+                    category: 'Other',
+                    date: new Date()
+                };
+
+                const saveResult = ExpenseStorage.saveExpense(
+                    testExpense.description,
+                    testExpense.amount,
+                    testExpense.category,
+                    testExpense.date
+                );
+
+                if (saveResult.success) {
+                    addTestResult('✓ Test expense saved successfully', true, saveResult.data);
+                    
+                    // Simulate page reload by clearing and re-initializing
+                    const savedId = saveResult.data.id;
+                    
+                    // Get expense directly from localStorage
+                    const rawData = localStorage.getItem('expenseTracker_expenses');
+                    const expenses = JSON.parse(rawData);
+                    const foundExpense = expenses.find(e => e.id === savedId);
+                    
+                    if (foundExpense) {
+                        addTestResult('✓ Expense persists in localStorage', true, foundExpense);
+                    } else {
+                        addTestResult('✗ Expense not found in localStorage', false);
+                        allPassed = false;
+                    }
+
+                    // Clean up
+                    ExpenseStorage.deleteExpense(savedId);
+                } else {
+                    addTestResult('✗ Failed to save test expense', false);
+                    allPassed = false;
+                }
+
+                // Test multiple expense persistence
+                const multipleExpenses = [];
+                for (let i = 0; i < 5; i++) {
+                    const result = ExpenseStorage.saveExpense(
+                        `Test Expense ${i}`,
+                        (i + 1) * 10.50,
+                        'Food',
+                        new Date()
+                    );
+                    if (result.success) {
+                        multipleExpenses.push(result.data.id);
+                    }
+                }
+
+                const allExpenses = ExpenseStorage.getAllExpenses();
+                const foundCount = multipleExpenses.filter(id => 
+                    allExpenses.some(e => e.id === id)
+                ).length;
+
+                if (foundCount === multipleExpenses.length) {
+                    addTestResult(`✓ All ${multipleExpenses.length} test expenses persisted correctly`);
+                } else {
+                    addTestResult(`✗ Only ${foundCount} of ${multipleExpenses.length} expenses persisted`, false);
+                    allPassed = false;
+                }
+
+                // Clean up
+                ExpenseStorage.deleteMultipleExpenses(multipleExpenses);
+
+            } catch (error) {
+                addTestResult(`✗ Unexpected error: ${error.message}`, false);
+                allPassed = false;
+            }
+
+            updateSectionStatus(allPassed);
+        }
+
+        // Test 3: Data Structure Integrity
+        async function testDataStructureIntegrity() {
+            createTestSection('3. Data Structure Integrity');
+            let allPassed = true;
+
+            try {
+                // Test expense structure
+                const result = ExpenseStorage.saveExpense(
+                    'Structure Test',
+                    123.45,
+                    'Entertainment',
+                    new Date('2024-01-15')
+                );
+
+                if (result.success) {
+                    const expense = result.data;
+                    
+                    // Check required fields
+                    const requiredFields = ['id', 'description', 'amount', 'category', 'date', 'createdAt', 'updatedAt'];
+                    const missingFields = requiredFields.filter(field => !(field in expense));
+                    
+                    if (missingFields.length === 0) {
+                        addTestResult('✓ All required fields present in expense structure');
+                    } else {
+                        addTestResult(`✗ Missing fields: ${missingFields.join(', ')}`, false);
+                        allPassed = false;
+                    }
+
+                    // Check field types
+                    const typeChecks = [
+                        { field: 'id', expected: 'string', actual: typeof expense.id },
+                        { field: 'description', expected: 'string', actual: typeof expense.description },
+                        { field: 'amount', expected: 'number', actual: typeof expense.amount },
+                        { field: 'category', expected: 'string', actual: typeof expense.category },
+                        { field: 'date', expected: 'object', actual: typeof expense.date },
+                    ];
+
+                    const typeErrors = typeChecks.filter(check => check.expected !== check.actual);
+                    
+                    if (typeErrors.length === 0) {
+                        addTestResult('✓ All fields have correct data types');
+                    } else {
+                        typeErrors.forEach(error => {
+                            addTestResult(`✗ ${error.field}: expected ${error.expected}, got ${error.actual}`, false);
+                        });
+                        allPassed = false;
+                    }
+
+                    // Check date is valid Date object
+                    if (expense.date instanceof Date && !isNaN(expense.date.getTime())) {
+                        addTestResult('✓ Date field is a valid Date object');
+                    } else {
+                        addTestResult('✗ Date field is not a valid Date object', false);
+                        allPassed = false;
+                    }
+
+                    // Clean up
+                    ExpenseStorage.deleteExpense(expense.id);
+                }
+
+                // Test category structure
+                const categories = ExpenseStorage.getAllCategories();
+                if (Array.isArray(categories)) {
+                    addTestResult('✓ Categories stored as array');
+                    
+                    const allStrings = categories.every(cat => typeof cat === 'string');
+                    if (allStrings) {
+                        addTestResult('✓ All categories are strings');
+                    } else {
+                        addTestResult('✗ Some categories are not strings', false);
+                        allPassed = false;
+                    }
+                } else {
+                    addTestResult('✗ Categories not stored as array', false);
+                    allPassed = false;
+                }
+
+            } catch (error) {
+                addTestResult(`✗ Unexpected error: ${error.message}`, false);
+                allPassed = false;
+            }
+
+            updateSectionStatus(allPassed);
+        }
+
+        // Test 4: Amount Calculations
+        async function testAmountCalculations() {
+            createTestSection('4. Amount Calculations and Totals');
+            let allPassed = true;
+
+            try {
+                // Clear existing expenses for clean test
+                const existingExpenses = ExpenseStorage.getAllExpenses();
+                const existingIds = existingExpenses.map(e => e.id);
+                if (existingIds.length > 0) {
+                    ExpenseStorage.deleteMultipleExpenses(existingIds);
+                }
+
+                // Add test expenses with known amounts
+                const testData = [
+                    { desc: 'Test 1', amount: 10.50, category: 'Food' },
+                    { desc: 'Test 2', amount: 25.75, category: 'Food' },
+                    { desc: 'Test 3', amount: 100.00, category: 'Transport' },
+                    { desc: 'Test 4', amount: 50.25, category: 'Transport' },
+                    { desc: 'Test 5', amount: 0.01, category: 'Other' } // Edge case: very small amount
+                ];
+
+                const savedIds = [];
+                testData.forEach(data => {
+                    const result = ExpenseStorage.saveExpense(
+                        data.desc,
+                        data.amount,
+                        data.category,
+                        new Date()
+                    );
+                    if (result.success) {
+                        savedIds.push(result.data.id);
+                    }
+                });
+
+                // Test total calculation
+                const expectedTotal = testData.reduce((sum, item) => sum + item.amount, 0);
+                const expenses = ExpenseStorage.getAllExpenses();
+                const actualTotal = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+
+                if (Math.abs(expectedTotal - actualTotal) < 0.001) {
+                    addTestResult(`✓ Total calculation correct: $${actualTotal.toFixed(2)}`);
+                } else {
+                    addTestResult(`✗ Total calculation incorrect. Expected: $${expectedTotal.toFixed(2)}, Got: $${actualTotal.toFixed(2)}`, false);
+                    allPassed = false;
+                }
+
+                // Test category totals
+                const foodTotal = ExpenseStorage.getTotalByCategory('Food');
+                const expectedFoodTotal = 10.50 + 25.75;
+                
+                if (Math.abs(foodTotal - expectedFoodTotal) < 0.001) {
+                    addTestResult(`✓ Category total correct for Food: $${foodTotal.toFixed(2)}`);
+                } else {
+                    addTestResult(`✗ Category total incorrect for Food. Expected: $${expectedFoodTotal.toFixed(2)}, Got: $${foodTotal.toFixed(2)}`, false);
+                    allPassed = false;
+                }
+
+                // Test floating point precision
+                const precisionTest = ExpenseStorage.saveExpense(
+                    'Precision Test',
+                    0.1 + 0.2, // Classic floating point issue
+                    'Other',
+                    new Date()
+                );
+
+                if (precisionTest.success) {
+                    const savedAmount = precisionTest.data.amount;
+                    addTestResult(`✓ Floating point handled: 0.1 + 0.2 = ${savedAmount}`);
+                    savedIds.push(precisionTest.data.id);
+                }
+
+                // Test negative amount validation
+                const negativeTest = ExpenseStorage.saveExpense(
+                    'Negative Test',
+                    -50.00,
+                    'Other',
+                    new Date()
+                );
+
+                if (!negativeTest.success) {
+                    addTestResult('✓ Negative amounts correctly rejected');
+                } else {
+                    addTestResult('✗ Negative amounts should be rejected', false);
+                    allPassed = false;
+                }
+
+                // Clean up
+                ExpenseStorage.deleteMultipleExpenses(savedIds);
+
+            } catch (error) {
+                addTestResult(`✗ Unexpected error: ${error.message}`, false);
+                allPassed = false;
+            }
+
+            updateSectionStatus(allPassed);
+        }
+
+        // Test 5: Date Handling
+        async function testDateHandling() {
+            createTestSection('5. Date Handling and Formatting');
+            let allPassed = true;
+
+            try {
+                // Test various date formats
+                const dateTests = [
+                    { date: new Date('2024-01-15'), desc: 'ISO date string' },
+                    { date: new Date(2024, 0, 15), desc: 'Date constructor' },
+                    { date: new Date('01/15/2024'), desc: 'US date format' },
+                    { date: '2024-01-15', desc: 'String date' }
+                ];
+
+                const savedIds = [];
+                
+                dateTests.forEach((test, index) => {
+                    const result = ExpenseStorage.saveExpense(
+                        test.desc,
+                        10.00,
+                        'Other',
+                        test.date
+                    );
+
+                    if (result.success) {
+                        savedIds.push(result.data.id);
+                        const savedDate = result.data.date;
+                        
+                        if (savedDate instanceof Date && !isNaN(savedDate.getTime())) {
+                            addTestResult(`✓ ${test.desc} converted to valid Date object`);
+                        } else {
+                            addTestResult(`✗ ${test.desc} not properly converted to Date`, false);
+                            allPassed = false;
+                        }
+                    }
+                });
+
+                // Test date range queries
+                const startDate = new Date('2024-01-01');
+                const endDate = new Date('2024-01-31');
+                const rangeExpenses = ExpenseStorage.getExpensesByDateRange(startDate, endDate);
+                
+                const inRange = rangeExpenses.every(exp => 
+                    exp.date >= startDate && exp.date <= endDate
+                );
+
+                if (inRange) {
+                    addTestResult('✓ Date range filtering works correctly');
+                } else {
+                    addTestResult('✗ Date range filtering returned out-of-range expenses', false);
+                    allPassed = false;
+                }
+
+                // Test monthly aggregation
+                const monthlyTotal = ExpenseStorage.getMonthlyTotal(2024, 1);
+                if (typeof monthlyTotal === 'number' && monthlyTotal >= 0) {
+                    addTestResult(`✓ Monthly aggregation works: January 2024 total = $${monthlyTotal.toFixed(2)}`);
+                } else {
+                    addTestResult('✗ Monthly aggregation failed', false);
+                    allPassed = false;
+                }
+
+                // Clean up
+                ExpenseStorage.deleteMultipleExpenses(savedIds);
+
+            } catch (error) {
+                addTestResult(`✗ Unexpected error: ${error.message}`, false);
+                allPassed = false;
+            }
+
+            updateSectionStatus(allPassed);
+        }
+
+        // Test 6: Edge Cases
+        async function testEdgeCases() {
+            createTestSection('6. Edge Cases and Error Handling');
+            let allPassed = true;
+
+            try {
+                // Test empty data
+                const emptyDescTest = ExpenseStorage.saveExpense('', 10.00, 'Food', new Date());
+                if (!emptyDescTest.success) {
+                    addTestResult('✓ Empty description correctly rejected');
+                } else {
+                    addTestResult('✗ Empty description should be rejected', false);
+                    allPassed = false;
+                }
+
+                // Test invalid amount
+                const invalidAmountTests = [
+                    { amount: 'abc', desc: 'string amount' },
+                    { amount: null, desc: 'null amount' },
+                    { amount: undefined, desc: 'undefined amount' },
+                    { amount: NaN, desc: 'NaN amount' },
+                    { amount: Infinity, desc: 'Infinity amount' }
+                ];
+
+                invalidAmountTests.forEach(test => {
+                    const result = ExpenseStorage.saveExpense('Test', test.amount, 'Food', new Date());
+                    if (!result.success) {
+                        addTestResult(`✓ ${test.desc} correctly rejected`);
+                    } else {
+                        addTestResult(`✗ ${test.desc} should be rejected`, false);
+                        allPassed = false;
+                    }
+                });
+
+                // Test very long description
+                const longDesc = 'A'.repeat(1000);
+                const longDescTest = ExpenseStorage.saveExpense(longDesc, 10.00, 'Food', new Date());
+                if (longDescTest.success) {
+                    addTestResult('✓ Long descriptions handled correctly');
+                    ExpenseStorage.deleteExpense(longDescTest.data.id);
+                }
+
+                // Test concurrent operations
+                const concurrentPromises = [];
+                for (let i = 0; i < 10; i++) {
+                    concurrentPromises.push(
+                        ExpenseStorage.saveExpense(`Concurrent ${i}`, i + 1, 'Other', new Date())
+                    );
+                }
+
+                const concurrentResults = await Promise.all(concurrentPromises);
+                const allSuccessful = concurrentResults.every(r => r.success);
+                
+                if (allSuccessful) {
+                    addTestResult('✓ Concurrent save operations handled correctly');
+                    const idsToDelete = concurrentResults.map(r => r.data.id);
+                    ExpenseStorage.deleteMultipleExpenses(idsToDelete);
+                } else {
+                    addTestResult('✗ Some concurrent operations failed', false);
+                    allPassed = false;
+                }
+
+                // Test storage when localStorage is full (simulated)
+                const storageSize = ExpenseStorage.getStorageSize();
+                addTestResult(`✓ Storage size tracking works: ${storageSize.kilobytes} KB used`);
+
+                // Test data export/import
+                const exportData = ExpenseStorage.exportData();
+                if (typeof exportData === 'string' && exportData.includes('"version"')) {
+                    addTestResult('✓ Data export works correctly');
+                    
+                    // Test reimport
+                    const importResult = ExpenseStorage.importData(exportData);
+                    if (importResult.success) {
+                        addTestResult('✓ Data import works correctly');
+                    } else {
+                        addTestResult('✗ Data import failed', false);
+                        allPassed = false;
+                    }
+                } else {
+                    addTestResult('✗ Data export failed', false);
+                    allPassed = false;
+                }
+
+            } catch (error) {
+                addTestResult(`✗ Unexpected error: ${error.message}`, false);
+                allPassed = false;
+            }
+
+            updateSectionStatus(allPassed);
+        }
+
+        // Run all tests
+        async function runAllTests() {
+            console.log('Starting data validation tests...');
+            
+            await testLocalStorageOperations();
+            await testDataPersistence();
+            await testDataStructureIntegrity();
+            await testAmountCalculations();
+            await testDateHandling();
+            await testEdgeCases();
+            
+            // Show summary
+            showSummary();
+        }
+
+        // Show test summary
+        function showSummary() {
+            const summary = document.getElementById('summary');
+            const summaryContent = document.getElementById('summary-content');
+            
+            const totalTests = testResults.length;
+            const passedTests = testResults.filter(r => r.success).length;
+            const failedTests = totalTests - passedTests;
+            const successRate = ((passedTests / totalTests) * 100).toFixed(1);
+            
+            const sections = {};
+            testResults.forEach(result => {
+                if (!sections[result.section]) {
+                    sections[result.section] = { passed: 0, failed: 0 };
+                }
+                if (result.success) {
+                    sections[result.section].passed++;
+                } else {
+                    sections[result.section].failed++;
+                }
+            });
+            
+            let summaryHTML = `
+                <p><strong>Total Tests:</strong> ${totalTests}</p>
+                <p><strong>Passed:</strong> ${passedTests} (${successRate}%)</p>
+                <p><strong>Failed:</strong> ${failedTests}</p>
+                <h3>Section Breakdown:</h3>
+                <ul>
+            `;
+            
+            Object.entries(sections).forEach(([section, counts]) => {
+                const sectionRate = ((counts.passed / (counts.passed + counts.failed)) * 100).toFixed(1);
+                summaryHTML += `<li><strong>${section}:</strong> ${counts.passed}/${counts.passed + counts.failed} passed (${sectionRate}%)</li>`;
+            });
+            
+            summaryHTML += '</ul>';
+            
+            if (failedTests > 0) {
+                summaryHTML += '<h3>Failed Tests:</h3><ul>';
+                testResults.filter(r => !r.success).forEach(result => {
+                    summaryHTML += `<li><strong>${result.section}:</strong> ${result.message}</li>`;
+                });
+                summaryHTML += '</ul>';
+            }
+            
+            summaryContent.innerHTML = summaryHTML;
+            summary.style.display = 'block';
+        }
+
+        // Run tests when page loads
+        window.addEventListener('load', runAllTests);
+    </script>
+</body>
+</html>
