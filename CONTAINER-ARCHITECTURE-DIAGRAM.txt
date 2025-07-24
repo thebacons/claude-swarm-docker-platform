@@ -1,0 +1,96 @@
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                           HOST MACHINE (Windows + WSL2 + Docker Desktop)                 │
+│                                                                                         │
+│  ┌───────────────────────────────────────────────────────────────────────────────────┐ │
+│  │                        Docker Network: claude-net (172.x.x.x/16)                   │ │
+│  │                                                                                    │ │
+│  │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐              │ │
+│  │  │  POLICEMAN       │  │  DEVELOPER-1     │  │  DEVELOPER-2     │              │ │
+│  │  │  Container       │  │  Container       │  │  Container       │              │ │
+│  │  │                  │  │                  │  │                  │              │ │
+│  │  │ Ubuntu 22.04     │  │ Ubuntu 22.04     │  │ Ubuntu 22.04     │              │ │
+│  │  │ Python 3.11      │  │ Python 3.11      │  │ Python 3.11      │              │ │
+│  │  │ Node.js 20       │  │ Node.js 20       │  │ Node.js 20       │              │ │
+│  │  │ Anthropic SDK    │  │ Anthropic SDK    │  │ Anthropic SDK    │              │ │
+│  │  │                  │  │                  │  │                  │              │ │
+│  │  │ Role:            │  │ Role:            │  │ Role:            │              │ │
+│  │  │ - Orchestrator   │  │ - Code Agent     │  │ - Code Agent     │              │ │
+│  │  │ - Task Manager   │  │ - Development    │  │ - Development    │              │ │
+│  │  │ - Validator      │  │ - Parallel Work  │  │ - Parallel Work  │              │ │
+│  │  │                  │  │                  │  │                  │              │ │
+│  │  │ Port: 8080 ─────┼──┼─ Internal: 8080  │  │ Internal: 8080   │              │ │
+│  │  │ CPU: 2 cores     │  │ CPU: 2 cores     │  │ CPU: 2 cores     │              │ │
+│  │  │ RAM: 2GB         │  │ RAM: 2GB         │  │ RAM: 2GB         │              │ │
+│  │  └──────┬───────────┘  └──────┬───────────┘  └──────┬───────────┘              │ │
+│  │         │                      │                      │                          │ │
+│  │         │    Orchestrates     │                      │        ┌──────────────┐ │ │
+│  │         ├─────────────────────┴──────────────────────┴────────┤  TESTER      │ │
+│  │         │                                                      │  Container   │ │
+│  │         │              ┌─────────────────────┐                │              │ │
+│  │         │              │      REDIS          │                │ Ubuntu 22.04 │ │
+│  │         │              │   (Message Bus)     │                │ Test Tools   │ │
+│  │         ├──────────────┤                     ├────────────────┤              │ │
+│  │         │   Pub/Sub    │  Alpine Linux       │    Pub/Sub     │ Port: 8080   │ │
+│  │         │              │  Port: 6379         │                │ CPU: 1 core  │ │
+│  │         │              │  In-Memory Cache    │                │ RAM: 1GB     │ │
+│  │         │              └─────────────────────┘                └──────┬───────┘ │
+│  │         │                                                             │         │ │
+│  │         │              ┌─────────────────────┐                      │         │ │
+│  │         │              │    POSTGRESQL       │                      │         │ │
+│  │         │              │  (State Storage)    │                      │         │ │
+│  │         └──────────────┤                     ├──────────────────────┘         │ │
+│  │            Store State  │  Alpine Linux       │    Log Results                 │ │
+│  │                        │  Port: 5432         │                                │ │
+│  │                        │  Persistent Storage │                                │ │
+│  │                        └─────────┬───────────┘                                │ │
+│  │                                  │                                             │ │
+│  │         ┌────────────────────────┴────────────────┐                          │ │
+│  │         │         DASHBOARD (Nginx)               │                          │ │
+│  │         │         Port: 3000                      │                          │ │
+│  │         │         Web UI for Monitoring           │                          │ │
+│  │         └─────────────────────────────────────────┘                          │ │
+│  │                                                                                │ │
+│  └────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                      │
+│  ┌────────────────────────┐                                                        │
+│  │   SSH CONTAINER        │  <--- You connect here with PuTTY                      │
+│  │   Ubuntu 22.04         │                                                        │
+│  │   Port: 2222 ──────────┼────> Maps to container's port 22                      │
+│  │   User: developer      │                                                        │
+│  │   Pass: claude         │                                                        │
+│  └────────────────────────┘                                                        │
+│                                                                                      │
+└──────────────────────────────────────────────────────────────────────────────────────┘
+
+KEY POINTS:
+===========
+
+1. ISOLATION:
+   - Each container has its own Ubuntu 22.04 installation
+   - Separate file systems (can't see each other's files)
+   - Separate process space (can't see each other's processes)
+   - Separate user accounts and permissions
+
+2. COMMUNICATION:
+   - Containers talk to each other through Redis (pub/sub messaging)
+   - Shared state stored in PostgreSQL database
+   - All on same Docker network (can reach each other by name)
+
+3. RESOURCE ALLOCATION:
+   - Each container has dedicated CPU and memory limits
+   - Prevents one container from consuming all resources
+   - Can be adjusted in docker-compose.yml
+
+4. VOLUMES (Shared Storage):
+   ./projects:/workspace/projects  → All containers see same project files
+   ./hooks:/workspace/hooks        → Shared hook scripts (read-only)
+   Individual .claude directories  → Each has its own config
+
+5. SCALING:
+   Easy to add more containers:
+   docker-compose up -d --scale developer=5  → Creates 5 developer containers
+
+6. ACCESS METHODS:
+   - SSH: ssh developer@localhost -p 2222
+   - Docker exec: docker exec -it claude-developer-1 /bin/bash
+   - Docker Desktop GUI: Click Terminal tab

@@ -1,0 +1,39 @@
+# Claude Swarm Docker Container - SSH Enabled Version
+FROM claude-swarm-docker-spawn-policeman:latest
+
+# Switch to root to install SSH
+USER root
+
+# Install OpenSSH Server
+RUN apt-get update && apt-get install -y \
+    openssh-server \
+    && rm -rf /var/lib/apt/lists/*
+
+# Configure SSH
+RUN mkdir /var/run/sshd && \
+    echo 'developer:claude' | chpasswd && \
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config && \
+    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
+    echo "AllowUsers developer" >> /etc/ssh/sshd_config
+
+# SSH port
+EXPOSE 22
+
+# Create SSH startup script
+RUN cat > /workspace/scripts/start-ssh.sh << 'EOF'
+#!/bin/bash
+# Start SSH service
+service ssh start
+
+# Run original startup
+exec /workspace/scripts/startup.sh "$@"
+EOF
+
+RUN chmod +x /workspace/scripts/start-ssh.sh
+
+# Switch back to developer user
+USER developer
+
+# Update entrypoint to start SSH
+ENTRYPOINT ["/workspace/scripts/start-ssh.sh"]
+CMD ["/bin/bash"]
