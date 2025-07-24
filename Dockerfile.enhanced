@@ -1,0 +1,331 @@
+# Claude Swarm Docker Container - Enhanced with Claude Code
+FROM ubuntu:22.04
+
+# Build arguments for version management
+ARG CLAUDE_CODE_VERSION="latest"
+ARG NODE_VERSION="20"
+ARG PYTHON_VERSION="3.11"
+
+# Prevent interactive prompts during installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    wget \
+    sudo \
+    build-essential \
+    software-properties-common \
+    ca-certificates \
+    gnupg \
+    lsb-release \
+    jq \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Add Python PPA and install Python 3.11
+RUN add-apt-repository ppa:deadsnakes/ppa -y && \
+    apt-get update && \
+    apt-get install -y \
+    python${PYTHON_VERSION} \
+    python${PYTHON_VERSION}-pip \
+    python${PYTHON_VERSION}-venv \
+    python${PYTHON_VERSION}-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set Python 3.11 as default
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTHON_VERSION} 1 && \
+    update-alternatives --install /usr/bin/python python /usr/bin/python${PYTHON_VERSION} 1
+
+# Install pip for Python 3.11
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python${PYTHON_VERSION}
+
+# Install Node.js
+RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - && \
+    apt-get install -y nodejs && \
+    npm install -g npm@latest
+
+# Install Ruby (for potential future use)
+RUN apt-get update && apt-get install -y \
+    ruby-full \
+    ruby-dev \
+    && gem install bundler \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN useradd -m -s /bin/bash developer && \
+    echo "developer ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# Set up workspace structure
+WORKDIR /workspace
+RUN mkdir -p \
+    projects \
+    configs \
+    logs \
+    sessions \
+    hooks \
+    .claude-code \
+    scripts \
+    && chown -R developer:developer /workspace
+
+# Switch to non-root user for Claude Code installation
+USER developer
+
+# Set environment variables
+ENV PATH="/home/developer/.local/bin:${PATH}"
+ENV CLAUDE_HOME="/home/developer/.claude"
+ENV ANTHROPIC_API_KEY=""
+
+# Install Python packages as user
+RUN pip3 install --user \
+    anthropic \
+    requests \
+    pyyaml \
+    python-dotenv
+
+# Create Claude Code installation script
+RUN cat > /workspace/scripts/install-claude-code.sh << 'EOF'
+#!/bin/bash
+set -e
+
+echo "Installing Claude Code..."
+
+# Check if Claude Code is already installed
+if command -v claude 2>&1 >/dev/null; then
+    echo "Claude Code is already installed"
+    claude --version
+    exit 0
+fi
+
+# Install Claude Code via npm (when available)
+# For now, we'll prepare the environment for manual installation
+echo "Claude Code installation prepared."
+echo "Please install Claude Code manually following official instructions."
+
+# Create claude wrapper script using Python SDK
+cat > /home/developer/.local/bin/claude-sdk << 'WRAPPER'
+#!/usr/bin/env python3
+import os
+import sys
+import json
+from anthropic import Anthropic
+
+client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+
+def main():
+    if len(sys.argv) < 2:
+        print("Usage: claude-sdk <prompt>")
+        sys.exit(1)
+    
+    prompt = " ".join(sys.argv[1:])
+    
+    try:
+        message = client.messages.create(
+            model="claude-3-5-sonnet-20241022",
+            max_tokens=4096,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        print(message.content[0].text)
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
+WRAPPER
+
+chmod +x /home/developer/.local/bin/claude-sdk
+echo "Claude SDK wrapper installed at /home/developer/.local/bin/claude-sdk"
+EOF
+
+RUN chmod +x /workspace/scripts/install-claude-code.sh
+
+# Create version check script
+RUN cat > /workspace/scripts/check-claude-version.sh << 'EOF'
+#!/bin/bash
+
+echo "=== Claude Code Version Check ==="
+echo ""
+
+# Check if Claude Code is installed
+if command -v claude 2>&1 >/dev/null; then
+    echo "Claude Code version:"
+    claude --version 2>/dev/null || echo "Version command not available"
+else
+    echo "Claude Code: Not installed"
+    echo "Using Claude SDK wrapper instead"
+fi
+
+echo ""
+echo "Python version:"
+python3 --version
+
+echo ""
+echo "Node.js version:"
+node --version
+
+echo ""
+echo "Anthropic SDK version:"
+pip show anthropic | grep Version || echo "Not installed"
+
+echo ""
+echo "=== Environment ==="
+echo "ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:+[SET]}"
+echo "CLAUDE_HOME: $CLAUDE_HOME"
+echo ""
+EOF
+
+RUN chmod +x /workspace/scripts/check-claude-version.sh
+
+# Create startup script
+RUN cat > /workspace/scripts/startup.sh << 'EOF'
+#!/bin/bash
+
+echo "=== Claude Swarm Container Starting ==="
+echo ""
+
+# Load environment variables from .env if it exists
+if [ -f /workspace/.env ]; then
+    echo "Loading environment from .env..."
+    set -a
+    source /workspace/.env
+    set +a
+fi
+
+# Check versions
+/workspace/scripts/check-claude-version.sh
+
+# Install/update Claude Code if requested
+if [ "$AUTO_UPDATE_CLAUDE" = "true" ]; then
+    echo "Checking for Claude Code updates..."
+    /workspace/scripts/install-claude-code.sh
+fi
+
+# Set up hooks if directory is mounted
+if [ -d /workspace/hooks ]; then
+    echo "Setting up Claude Code hooks..."
+    mkdir -p /home/developer/.claude-code
+    
+    # Create settings.json for hooks
+    cat > /home/developer/.claude-code/settings.json << 'SETTINGS'
+{
+  "hooks": {
+    "preToolUse": [],
+    "postToolUse": [
+      {
+        "matcher": {
+          "tools": ["Write"],
+          "files": ["*.js", "*.jsx", "*.ts", "*.tsx"]
+        },
+        "command": "bash /workspace/hooks/validators/syntax-check.sh ${CLAUDE_FILE_PATH}",
+        "blocking": true
+      },
+      {
+        "matcher": {
+          "tools": ["Write"],
+          "files": ["*.js", "*.jsx"]
+        },
+        "command": "bash /workspace/hooks/validators/react-check.sh ${CLAUDE_FILE_PATH}",
+        "blocking": true
+      }
+    ],
+    "postConversation": []
+  }
+}
+SETTINGS
+    echo "Hooks configured."
+fi
+
+# Run health check
+/workspace/scripts/health-check.sh
+
+echo ""
+echo "=== Container Ready ==="
+echo ""
+
+# Keep container running
+exec "$@"
+EOF
+
+RUN chmod +x /workspace/scripts/startup.sh
+
+# Create health check script
+RUN cat > /workspace/scripts/health-check.sh << 'EOF'
+#!/bin/bash
+
+echo "=== Health Check ==="
+
+# Check API key
+if [ -z "$ANTHROPIC_API_KEY" ]; then
+    echo "WARNING: ANTHROPIC_API_KEY not set"
+    exit 1
+fi
+
+# Test Python SDK
+python3 -c "import anthropic; print('✓ Anthropic SDK available')" 2>/dev/null || echo "✗ Anthropic SDK error"
+
+# Test network
+curl -s -o /dev/null -w "✓ Network connectivity OK\n" https://api.anthropic.com 2>/dev/null || echo "✗ Network error"
+
+# Test file permissions
+touch /workspace/test-write 2>/dev/null && rm /workspace/test-write && echo "✓ Write permissions OK" || echo "✗ Write permission error"
+
+echo "=== Health Check Complete ==="
+EOF
+
+RUN chmod +x /workspace/scripts/health-check.sh
+
+# Copy configuration files
+COPY --chown=developer:developer configs/ /workspace/configs/
+COPY --chown=developer:developer hooks/ /workspace/hooks/
+COPY --chown=developer:developer *.sh /workspace/
+
+# Create .bashrc additions
+RUN cat >> /home/developer/.bashrc << 'EOF'
+
+# Claude Swarm Environment
+export ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}"
+export CLAUDE_HOME="/home/developer/.claude"
+
+# Aliases
+alias claude-test="python3 -c 'from anthropic import Anthropic; c=Anthropic(); print(c.messages.create(model=\"claude-3-5-sonnet-20241022\", max_tokens=100, messages=[{\"role\": \"user\", \"content\": \"Say hello\"}]).content[0].text)'"
+alias claude-chat="python3 /workspace/claude-api.py"
+alias check-version="/workspace/scripts/check-claude-version.sh"
+alias health-check="/workspace/scripts/health-check.sh"
+
+# Load .env on shell start
+if [ -f /workspace/.env ]; then
+    set -a
+    source /workspace/.env
+    set +a
+fi
+
+# Welcome message
+echo "Welcome to Claude Swarm Docker Container!"
+echo "Run 'check-version' to see installed versions"
+echo "Run 'health-check' to verify setup"
+echo ""
+EOF
+
+# Switch back to root for final setup
+USER root
+
+# Expose port for potential web UI
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD su - developer -c "/workspace/scripts/health-check.sh" || exit 1
+
+# Switch back to developer user
+USER developer
+
+# Set working directory
+WORKDIR /workspace
+
+# Entry point
+ENTRYPOINT ["/workspace/scripts/startup.sh"]
+
+# Default command
+CMD ["/bin/bash"]

@@ -1,0 +1,194 @@
+version: '3.8'
+
+services:
+  # Policeman Agent - Central Orchestrator
+  policeman:
+    build:
+      context: .
+      dockerfile: Dockerfile.enhanced
+      args:
+        CLAUDE_CODE_VERSION: "latest"
+        NODE_VERSION: "20"
+        PYTHON_VERSION: "3.11"
+    container_name: claude-policeman
+    hostname: policeman
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - AGENT_ROLE=policeman
+      - AGENT_NAME=Policeman-01
+      - AUTO_UPDATE_CLAUDE=false
+      - LINEAR_API_KEY=${LINEAR_API_KEY:-}
+      - GITHUB_TOKEN=${GITHUB_PAT_KEY:-}
+    volumes:
+      - ./projects:/workspace/projects
+      - ./hooks:/workspace/hooks:ro
+      - ./configs:/workspace/configs:ro
+      - ./logs/policeman:/workspace/logs
+      - ./.env:/workspace/.env:ro
+      - policeman-claude:/home/developer/.claude
+      - policeman-cache:/home/developer/.cache
+    networks:
+      - claude-net
+    ports:
+      - "8080:8080"  # Web UI port
+    restart: unless-stopped
+    command: ["/bin/bash", "-c", "while true; do sleep 3600; done"]
+
+  # Developer Agent 1
+  developer-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.enhanced
+    container_name: claude-developer-1
+    hostname: developer-1
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - AGENT_ROLE=developer
+      - AGENT_NAME=Developer-01
+      - AGENT_SPECIALIZATION=frontend
+      - AUTO_UPDATE_CLAUDE=false
+    volumes:
+      - ./projects:/workspace/projects
+      - ./hooks:/workspace/hooks:ro
+      - ./configs:/workspace/configs:ro
+      - ./logs/developer-1:/workspace/logs
+      - ./.env:/workspace/.env:ro
+      - dev1-claude:/home/developer/.claude
+      - dev1-cache:/home/developer/.cache
+    networks:
+      - claude-net
+    depends_on:
+      - policeman
+    restart: unless-stopped
+    command: ["/bin/bash", "-c", "while true; do sleep 3600; done"]
+
+  # Developer Agent 2
+  developer-2:
+    build:
+      context: .
+      dockerfile: Dockerfile.enhanced
+    container_name: claude-developer-2
+    hostname: developer-2
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - AGENT_ROLE=developer
+      - AGENT_NAME=Developer-02
+      - AGENT_SPECIALIZATION=backend
+      - AUTO_UPDATE_CLAUDE=false
+    volumes:
+      - ./projects:/workspace/projects
+      - ./hooks:/workspace/hooks:ro
+      - ./configs:/workspace/configs:ro
+      - ./logs/developer-2:/workspace/logs
+      - ./.env:/workspace/.env:ro
+      - dev2-claude:/home/developer/.claude
+      - dev2-cache:/home/developer/.cache
+    networks:
+      - claude-net
+    depends_on:
+      - policeman
+    restart: unless-stopped
+    command: ["/bin/bash", "-c", "while true; do sleep 3600; done"]
+
+  # Tester Agent
+  tester:
+    build:
+      context: .
+      dockerfile: Dockerfile.enhanced
+    container_name: claude-tester
+    hostname: tester
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - AGENT_ROLE=tester
+      - AGENT_NAME=Tester-01
+      - AUTO_UPDATE_CLAUDE=false
+    volumes:
+      - ./projects:/workspace/projects
+      - ./hooks:/workspace/hooks:ro
+      - ./configs:/workspace/configs:ro
+      - ./logs/tester:/workspace/logs
+      - ./.env:/workspace/.env:ro
+      - tester-claude:/home/developer/.claude
+      - tester-cache:/home/developer/.cache
+    networks:
+      - claude-net
+    depends_on:
+      - policeman
+    restart: unless-stopped
+    command: ["/bin/bash", "-c", "while true; do sleep 3600; done"]
+
+  # Redis for inter-agent communication
+  redis:
+    image: redis:7-alpine
+    container_name: claude-redis
+    hostname: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - claude-net
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # PostgreSQL for state persistence
+  postgres:
+    image: postgres:15-alpine
+    container_name: claude-postgres
+    hostname: postgres
+    environment:
+      - POSTGRES_USER=claude
+      - POSTGRES_PASSWORD=claude_secure_password
+      - POSTGRES_DB=claude_orchestration
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - claude-net
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  # Monitoring Dashboard (placeholder for now)
+  dashboard:
+    image: nginx:alpine
+    container_name: claude-dashboard
+    hostname: dashboard
+    volumes:
+      - ./dashboard/dist:/usr/share/nginx/html:ro
+      - ./dashboard/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - claude-net
+    ports:
+      - "3000:80"
+    depends_on:
+      - policeman
+      - redis
+      - postgres
+    restart: unless-stopped
+
+networks:
+  claude-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+volumes:
+  # Policeman volumes
+  policeman-claude:
+  policeman-cache:
+  
+  # Developer volumes
+  dev1-claude:
+  dev1-cache:
+  dev2-claude:
+  dev2-cache:
+  
+  # Tester volumes
+  tester-claude:
+  tester-cache:
+  
+  # Database volumes
+  redis-data:
+  postgres-data:
