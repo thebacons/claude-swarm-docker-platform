@@ -1,0 +1,114 @@
+{
+  "name": "Master Hook Configuration - 10 Agent System",
+  "description": "Comprehensive hook system preventing common development mistakes through multi-agent coordination",
+  "version": "1.0.0",
+  "agents": [
+    {
+      "id": "agent1",
+      "name": "Unauthorized Changes Prevention",
+      "config": "./agent1-unauthorized-changes.json",
+      "priority": 1,
+      "focus": "Blocking unauthorized changes to production, configs, and critical files"
+    },
+    {
+      "id": "agent2", 
+      "name": "Assumption Detection",
+      "config": "./agent2-assumption-detection.json",
+      "priority": 2,
+      "focus": "Detecting 'should work' assumptions and enforcing testing"
+    },
+    {
+      "id": "agent3",
+      "name": "Deletion Review Enforcement",
+      "config": "./agent3-deletion-review.json", 
+      "priority": 1,
+      "focus": "Preventing code/file deletion without review and documentation"
+    },
+    {
+      "id": "agent4",
+      "name": "Multi-Agent Usage Suggestions",
+      "config": "./agent4-multi-agent-suggestions.json",
+      "priority": 3,
+      "focus": "Suggesting multi-agent approaches for complex tasks"
+    },
+    {
+      "id": "agent5",
+      "name": "Testing Enforcement",
+      "config": "./agent5-testing-enforcement.json",
+      "priority": 1,
+      "focus": "Enforcing tests after changes and before commits"
+    },
+    {
+      "id": "agent6",
+      "name": "Hallucination Detection", 
+      "config": "./agent6-hallucination-detection.json",
+      "priority": 2,
+      "focus": "Detecting AI hallucinations in code and configurations"
+    },
+    {
+      "id": "agent7",
+      "name": "Staging/Testing Environment",
+      "config": "./agent7-staging-enforcement.json",
+      "priority": 1,
+      "focus": "Enforcing staging deployment before production"
+    },
+    {
+      "id": "agent8",
+      "name": "Documentation Checks",
+      "config": "./agent8-documentation-checks.json",
+      "priority": 3,
+      "focus": "Ensuring code documentation and readme updates"
+    },
+    {
+      "id": "agent9",
+      "name": "Git Branching Enforcement",
+      "config": "./agent9-git-branching.json",
+      "priority": 1,
+      "focus": "Enforcing proper git branching and commit strategies"
+    },
+    {
+      "id": "agent10",
+      "name": "Integration Coordinator",
+      "config": "./agent10-integration-coordinator.json",
+      "priority": 0,
+      "focus": "Coordinating all agents and enforcing comprehensive workflows"
+    }
+  ],
+  "global_settings": {
+    "enforcement_mode": "strict",
+    "allow_overrides": true,
+    "override_keyword": "OVERRIDE",
+    "audit_all_operations": true,
+    "emergency_stop_enabled": true
+  },
+  "workflow_rules": [
+    {
+      "name": "Production Protection",
+      "required_agents": ["agent1", "agent5", "agent7"],
+      "condition": "Any production-related operation"
+    },
+    {
+      "name": "Code Quality", 
+      "required_agents": ["agent2", "agent5", "agent6"],
+      "condition": "Any code modification"
+    },
+    {
+      "name": "Deletion Safety",
+      "required_agents": ["agent1", "agent3"],
+      "condition": "Any deletion operation"
+    },
+    {
+      "name": "Complex Task Management",
+      "required_agents": ["agent4", "agent10"],
+      "condition": "Tasks involving multiple files or components"
+    }
+  ],
+  "integration_commands": {
+    "enable_all": "for f in agent*.json; do claude-code hooks add \"$f\"; done",
+    "test_hooks": "claude-code hooks test --all",
+    "view_audit": "tail -f .claude-safety/audit/master-audit.log",
+    "emergency_stop": "touch .claude-safety/.emergency-stop",
+    "clear_emergency": "rm -f .claude-safety/.emergency-stop",
+    "generate_report": "python3 generate-safety-report.py"
+  }
+}

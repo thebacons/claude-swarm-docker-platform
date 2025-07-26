@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "type": "stdio",
+      "command": "mcp-server-filesystem",
+      "args": ["/home/claude/workspace", "/workspace/projects"],
+      "description": "File system access for test files"
+    }
+  }
+}

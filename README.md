@@ -1,14 +1,21 @@
-# Claude Swarm Docker Platform
+# CASPER - Claude Agent Swarm Platform for Enhanced Robotics
 
-A multi-agent AI orchestration platform that runs multiple Claude-powered agents in isolated Docker containers, working together to accomplish complex software development tasks.
+A production-ready multi-agent AI orchestration platform with Claude Code v1.0.30 pre-installed in Docker containers. Successfully deployed January 25, 2025.
 
 ## 🚀 Overview
 
-This platform creates a team of AI agents, each running in its own Ubuntu container:
-- **👮 Policeman**: The orchestrator that manages and coordinates all other agents
-- **💻 Developer-1 & 2**: Code-writing agents that work in parallel
-- **🧪 Tester**: Quality assurance agent that validates code
-- **📊 Supporting Services**: Redis (messaging), PostgreSQL (state), Dashboard (monitoring)
+CASPER creates a team of AI agents with full Claude Code capabilities:
+- **👮 Policeman**: Master orchestrator on port 2222 (easy to remember!)
+- **💻 Developer-1**: Frontend specialist on port 2223
+- **💻 Developer-2**: Backend specialist on port 2224
+- **🧪 Tester**: QA engineer on port 2225
+- **📊 Supporting Services**: Redis (messaging), PostgreSQL (state)
+
+### ✅ Latest Status (January 25, 2025)
+- Golden image `casper-golden:fixed` built with full Claude Code
+- All containers running and accessible via SSH
+- Parallel execution verified (2.9x performance improvement)
+- Authentication issues resolved
 
 ### System Architecture
 
@@ -66,45 +73,123 @@ claude-swarm-docker-spawn/
 ## 🚦 Quick Start
 
 ### Prerequisites
-- Docker Desktop 4.42.2+ (with WSL2 integration enabled)
+- Docker Desktop (with WSL2 integration enabled)
 - Windows 10/11 with WSL2
 - At least 8GB RAM available
-- Anthropic API key
+- Claude Code installed on host machine
+- Anthropic API key OR Claude subscription
 
 ### Setup
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/thebacons/claude-swarm-docker-platform.git
+git clone https://github.com/${GITHUB_USERNAME}/claude-swarm-docker-platform.git
 cd claude-swarm-docker-platform
 ```
 
-2. Create `.env` file:
+2. Create `.env` file with your credentials:
 ```bash
-# Copy template
-cp .env.example .env
-
-# Edit and add your API key
-# ANTHROPIC_API_KEY=sk-ant-api...
+ANTHROPIC_API_KEY=sk-ant-api...
+GITHUB_USERNAME=yourusername
+GITHUB_PAT_KEY=github_pat_...
+LINEAR_API_KEY=lin_api_...
 ```
 
-3. Build and start the platform:
+3. Build the golden image:
 ```bash
-# Using Docker Compose
-docker-compose -f docker-compose.enhanced.yml up -d
-
-# Or use the Windows batch script
-build-enhanced.bat
-
-# Or use the Linux/WSL script
-./build-enhanced.sh
+# Use the FIXED script (important!)
+./build-golden-fixed.sh
 ```
 
-4. Verify all containers are running:
+4. Start all containers:
+```bash
+docker-compose -f docker-compose.golden.yml up -d
+```
+
+5. Copy Claude authentication (one-time setup):
+```bash
+# Copy your Claude subscription to containers
+for container in casper-policeman casper-developer-1 casper-developer-2 casper-tester; do
+    docker cp ~/.claude/.credentials.json $container:/home/claude/.claude/.credentials.json
+    docker exec $container chown claude:claude /home/claude/.claude/.credentials.json
+done
+```
+
+## 🎯 Critical Usage Information
+
+### ⚠️ IMPORTANT: How to Run Claude Without Setup Prompts
+
+```bash
+# ✅ CORRECT - No interactive prompts
+docker exec casper-policeman claude "Your request"
+
+# ❌ WRONG - Triggers theme/auth setup
+docker exec -it casper-policeman claude "Your request"
+```
+
+The `-it` flag creates an interactive terminal that triggers Claude's first-run setup. Always omit it for automated usage.
+
+### 🧠 How Claude Code Knows Its Role (CLAUDE.md)
+
+Each container can have a `CLAUDE.md` file that Claude Code reads **for every command** to understand its role:
+
+```bash
+# Create role-specific CLAUDE.md in each container
+docker exec casper-policeman bash -c 'cat > /home/claude/workspace/CLAUDE.md << EOF
+# You are the Policeman Orchestrator
+You are the master orchestrator who coordinates other agents...
+EOF'
+```
+
+**Key Understanding**: Each container is like a separate computer with its own filesystem. When you run `docker exec casper-policeman`, you're executing commands inside THAT specific container only.
+
+### 📚 Configuration Files Claude Code Reads
+
+| File | Location in Container | When Read | Purpose |
+|------|----------------------|-----------|---------|
+| `CLAUDE.md` | `/home/claude/workspace/CLAUDE.md` | Every command | Project context & role |
+| `mcp.json` | `/home/claude/.claude/config/mcp.json` | Startup | MCP server connections |
+| `hooks.json` | `/home/claude/.config/claude-code/hooks.json` | Startup | Hook configurations |
+| `.credentials.json` | `/home/claude/.claude/.credentials.json` | Startup | Authentication |
+| `settings.json` | `/home/claude/.config/claude-code/settings.json` | Startup | General settings |
+
+**Important**: Since CLAUDE.md is read for every command, you can update it anytime and the next command will see the new context - no restart needed!
+
+### Verify all containers are running:
 ```bash
 docker ps
 # Should show: claude-policeman, claude-developer-1, claude-developer-2, 
 #              claude-tester, claude-redis, claude-postgres, claude-dashboard
+```
+
+## 🤖 Using CASPER - The AI Orchestrator
+
+### Quick Start with CASPER
+```bash
+# Start the interactive orchestrator
+./start-casper.sh
+
+# Or directly access the CLI
+docker exec -it claude-policeman python3 /workspace/scripts/casper-cli.py
+```
+
+### What is CASPER?
+CASPER (Claude Agent Swarm Platform for Enhanced Robotics) is the AI orchestration layer that makes the Policeman container intelligent. It:
+- 🧠 Understands complex development requests
+- 📋 Breaks down tasks into subtasks
+- 🎯 Assigns work to appropriate agents
+- ⚡ Manages parallel execution for speed
+- ✅ Coordinates results and quality checks
+
+### Example Interactions
+```
+👮 CASPER> Create a React dashboard with user authentication
+
+[CASPER will decompose this into subtasks, assign to agents, and coordinate the development]
+
+👮 CASPER> Refactor these 50 JavaScript files to TypeScript using maximum parallelization
+
+[CASPER will spawn multiple agent instances for parallel processing]
 ```
 
 ## 📡 Accessing the Containers
@@ -185,10 +270,13 @@ The hook validation system prevents common errors:
 ```bash
 ANTHROPIC_API_KEY=sk-ant-...        # Required
 LINEAR_API_KEY=lin_api_...          # Optional
-GITHUB_PAT_KEY=ghp_...              # Optional
+GITHUB_PAT_KEY=ghp_...              # Required for git push (see .env for actual token)
 AUTO_UPDATE_CLAUDE=false            # Auto-update when available
 POSTGRES_PASSWORD=secure_password    # Database password
 ```
+
+### 🔐 CRITICAL: GitHub Authentication
+See [GITHUB-AUTHENTICATION-GUIDE.md](GITHUB-AUTHENTICATION-GUIDE.md) for the correct method to push to GitHub. Only ONE specific PAT works - do not use others!
 
 ### Volume Mounts
 - `./projects:/workspace/projects` - Shared project files
@@ -259,6 +347,8 @@ docker run -d --name claude-ssh -p 2222:22 claude-ssh-simple
 - [Container Access Guide](CONTAINER-ACCESS-GUIDE.md)
 - [Implementation Guide](IMPLEMENTATION.md)
 - [Docker WSL Setup](DOCKER-WSL-SETUP.md)
+- [**GitHub Authentication Guide**](GITHUB-AUTHENTICATION-GUIDE.md) ⚠️ **CRITICAL - Read This!**
+- [**Container Security Guide**](CONTAINER-SECURITY-GUIDE.md) 🔒 **Secret Management**
 
 ## 🎯 Roadmap
 

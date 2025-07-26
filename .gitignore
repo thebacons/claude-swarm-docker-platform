@@ -76,3 +76,16 @@ Desktop.ini
 # Any file with "key" or "token" in the name (extra safety)
 *[Kk]ey*
 *[Tt]oken*
+
+# Video files (too large for GitHub)
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
+
+# Large archives
+*.zip
+*.tar.gz
+*.rar
+*.7z

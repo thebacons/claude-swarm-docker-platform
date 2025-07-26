@@ -1,0 +1,51 @@
+{
+  "name": "Agent 3 - Deletion Review Enforcement",
+  "description": "Forces code review and understanding before any deletion",
+  "hooks": {
+    "preToolUse": [
+      {
+        "id": "block-file-deletion",
+        "matcher": {
+          "tools": ["Bash"],
+          "command": ".*\\brm\\b.*"
+        },
+        "command": "bash -c 'echo \"DELETION BLOCKED: Review required for: $CLAUDE_COMMAND\"; echo \"Analyze file contents first with Read tool\"; exit 1'"
+      },
+      {
+        "id": "prevent-code-removal",
+        "matcher": {
+          "tools": ["Edit", "MultiEdit"],
+          "old_string": ".+",
+          "new_string": "^$|^\\s*$"
+        },
+        "command": "echo 'CODE DELETION DETECTED: Removing code requires justification. Document reason in deletion-log.md' && exit 1"
+      },
+      {
+        "id": "force-deletion-documentation",
+        "matcher": {
+          "tools": ["Bash"],
+          "command": ".*(git rm|rmdir|unlink).*"
+        },
+        "command": "bash -c 'if [ ! -f deletion-justification.md ]; then echo \"ERROR: Create deletion-justification.md with reason for deletion\"; exit 1; fi'"
+      },
+      {
+        "id": "backup-before-delete",
+        "matcher": {
+          "tools": ["Write"],
+          "content": "^$|^\\s*$"
+        },
+        "command": "bash -c 'echo \"Creating backup of $CLAUDE_FILE_PATH\"; cp \"$CLAUDE_FILE_PATH\" \"$CLAUDE_FILE_PATH.backup.$(date +%Y%m%d_%H%M%S)\" 2>/dev/null || true'"
+      }
+    ],
+    "postToolUse": [
+      {
+        "id": "log-deletions",
+        "matcher": {
+          "tools": ["Edit"],
+          "new_string": "^$|^\\s*$"
+        },
+        "command": "echo \"$(date): Deleted content from $CLAUDE_FILE_PATH\" >> .deletion-audit.log"
+      }
+    ]
+  }
+}

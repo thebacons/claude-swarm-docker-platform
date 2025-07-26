@@ -1,0 +1,59 @@
+{
+  "name": "Agent 7 - Staging/Testing Environment Enforcement",
+  "description": "Enforces staging and testing before production deployment",
+  "hooks": {
+    "preToolUse": [
+      {
+        "id": "block-production-deployment",
+        "matcher": {
+          "tools": ["Bash"],
+          "command": ".*(deploy|publish|release).*production.*"
+        },
+        "command": "bash -c 'if [ ! -f .staging-tested ]; then echo \"ERROR: Production deployment blocked. Deploy to staging first: deploy-staging.sh\"; exit 1; fi'"
+      },
+      {
+        "id": "enforce-staging-first",
+        "matcher": {
+          "tools": ["Bash"],
+          "command": ".*(kubectl|docker|terraform|ansible).*(apply|deploy|push).*"
+        },
+        "command": "bash -c 'if [[ ! \"$CLAUDE_COMMAND\" =~ (staging|test|dev) ]]; then echo \"WARNING: Direct production change detected. Use staging environment first.\"; read -p \"Type OVERRIDE to continue: \" resp; [ \"$resp\" = \"OVERRIDE\" ] || exit 1; fi'"
+      },
+      {
+        "id": "database-migration-staging",
+        "matcher": {
+          "tools": ["Bash"],
+          "command": ".*(migrate|migration).*"
+        },
+        "command": "echo 'MIGRATION SAFETY: Run on staging database first:' && echo '  1. Run migration on staging' && echo '  2. Verify data integrity' && echo '  3. Create rollback plan' && echo 'Then: touch .migration-staging-tested'"
+      }
+    ],
+    "postToolUse": [
+      {
+        "id": "staging-test-validation",
+        "matcher": {
+          "tools": ["Bash"],
+          "command": ".*test.*staging.*"
+        },
+        "command": "bash -c 'if [ $? -eq 0 ]; then touch .staging-tested && echo \"Staging tests passed. Production deployment authorized for 24h\"; fi'"
+      },
+      {
+        "id": "create-staging-snapshot",
+        "matcher": {
+          "tools": ["Edit", "Write"],
+          "path": ".*(deploy|config|infrastructure).*"
+        },
+        "command": "echo 'Creating staging configuration snapshot...' && cp -r . ../staging-snapshot-$(date +%Y%m%d_%H%M%S)/ 2>/dev/null || true"
+      }
+    ],
+    "userPromptSubmit": [
+      {
+        "id": "suggest-staging-test",
+        "matcher": {
+          "prompt": ".*(deploy|release|publish|push to production).*"
+        },
+        "command": "echo 'STAGING CHECKLIST:\\n□ Code deployed to staging\\n□ All tests pass on staging\\n□ Performance benchmarks met\\n□ Security scan completed\\n□ Rollback plan documented\\n□ Stakeholders notified'"
+      }
+    ]
+  }
+}

@@ -1,0 +1,173 @@
+{
+  "hooks": {
+    "preTaskStart": [
+      {
+        "name": "Problem Definition Enforcer",
+        "matcher": {"tools": ["*"]},
+        "command": "if [ ! -f .brainstorm/problem-statement.md ]; then echo '❌ ERROR: No problem statement found. Create .brainstorm/problem-statement.md first'; exit 1; fi",
+        "description": "Ensures problem is clearly defined before any work begins"
+      },
+      {
+        "name": "Phase Tracker Initialize",
+        "matcher": {"tools": ["*"]},
+        "command": "mkdir -p .brainstorm && echo 'PROBLEM_DEFINITION' > .brainstorm/current-phase.txt && date +%s > .brainstorm/phase-start-time.txt",
+        "description": "Initializes brainstorming session tracking"
+      }
+    ],
+    
+    "preToolUse": [
+      {
+        "name": "Solution Jump Preventer",
+        "matcher": {"tools": ["Edit", "Write", "MultiEdit"]},
+        "command": "phase=$(cat .brainstorm/current-phase.txt 2>/dev/null || echo 'UNKNOWN'); if [[ $phase == 'PROBLEM_DEFINITION' || $phase == 'DATA_GATHERING' ]] && [[ $CLAUDE_FILE_PATH == *.py || $CLAUDE_FILE_PATH == *.js || $CLAUDE_FILE_PATH == *.ts ]]; then echo '⚠️  WARNING: Attempting to write code during $phase phase. Complete analysis first!'; exit 1; fi",
+        "description": "Prevents jumping to implementation before analysis"
+      },
+      {
+        "name": "Citation Enforcer",
+        "matcher": {"tools": ["Write", "Edit"]},
+        "command": "phase=$(cat .brainstorm/current-phase.txt 2>/dev/null); if [[ $phase == 'DATA_GATHERING' ]] && [[ $CLAUDE_FILE_PATH == *.md ]]; then echo '📚 REMINDER: All data must include citations. Use [Source: URL/Reference] format'; fi",
+        "description": "Reminds to include citations during data gathering"
+      },
+      {
+        "name": "Time Allocation Checker",
+        "matcher": {"tools": ["*"]},
+        "command": "bash .brainstorm/check-time-allocation.sh",
+        "description": "Enforces time allocation per phase (25% data gathering)"
+      },
+      {
+        "name": "Parallel Execution for Data Gathering",
+        "matcher": {"phase": "DATA_GATHERING"},
+        "command": "phase=$(cat .brainstorm/current-phase.txt 2>/dev/null); if [[ $phase == 'DATA_GATHERING' ]]; then echo '🚀 DATA GATHERING: Spawn 5 subagents using Task tool for parallel research!'; fi",
+        "description": "Reminds to use parallel agents for data collection"
+      },
+      {
+        "name": "Parallel Analysis Reminder",
+        "matcher": {"phase": "ANALYSIS"},
+        "command": "phase=$(cat .brainstorm/current-phase.txt 2>/dev/null); if [[ $phase == 'ANALYSIS' ]]; then echo '🔄 ANALYSIS: Each CASPER agent should spawn 5 subagents for parallel analysis!'; fi",
+        "description": "Encourages parallel processing during analysis"
+      }
+    ],
+    
+    "postToolUse": [
+      {
+        "name": "Brainstorm Activity Logger",
+        "matcher": {"tools": ["*"]},
+        "command": "echo \"$(date +'%Y-%m-%d %H:%M:%S') | Phase: $(cat .brainstorm/current-phase.txt) | Tool: $CLAUDE_TOOL_NAME | File: $CLAUDE_FILE_PATH\" >> .brainstorm/activity.log",
+        "description": "Logs all activities for brainstorming audit trail"
+      },
+      {
+        "name": "Phase Progress Tracker",
+        "matcher": {"tools": ["Write", "Edit"]},
+        "command": "if [[ $CLAUDE_FILE_PATH == .brainstorm/phase-complete.signal ]]; then bash .brainstorm/advance-phase.sh; fi",
+        "description": "Advances to next phase when signaled"
+      },
+      {
+        "name": "Question Collector",
+        "matcher": {"tools": ["Write"]},
+        "command": "if [[ $CLAUDE_FILE_PATH == .brainstorm/questions.md ]]; then echo '❓ New questions added. Review before proceeding to analysis phase.'; fi",
+        "description": "Tracks questions that need answers"
+      }
+    ],
+    
+    "preCommit": [
+      {
+        "name": "Solution Testing Enforcer",
+        "matcher": {"branch": "feature/*"},
+        "command": "phase=$(cat .brainstorm/current-phase.txt 2>/dev/null); if [[ $phase != 'PLANNING_ACTION' ]] || [ ! -f .brainstorm/solution-tests-passed.flag ]; then echo '❌ Cannot commit: Solution must be tested first'; exit 1; fi",
+        "description": "Ensures solutions are tested before committing"
+      },
+      {
+        "name": "SSC Collection Enforcer",
+        "matcher": {"branch": "*"},
+        "command": "if [ ! -f .brainstorm/ssc-collection.md ]; then echo '❌ Cannot commit: STOP/START/CONTINUE collection required'; exit 1; fi",
+        "description": "Ensures learning capture before commit"
+      }
+    ],
+    
+    "postCommit": [
+      {
+        "name": "Learning Database Updater",
+        "matcher": {"branch": "*"},
+        "command": "if [ -f .brainstorm/ssc-collection.md ]; then cat .brainstorm/ssc-collection.md >> ~/.brainstorm-learnings/database.md; echo '✅ Learnings captured to database'; fi",
+        "description": "Updates central learnings database"
+      },
+      {
+        "name": "Brainstorm Session Archiver",
+        "matcher": {"branch": "*"},
+        "command": "tar -czf .brainstorm-archives/session-$(date +%Y%m%d-%H%M%S).tar.gz .brainstorm/",
+        "description": "Archives brainstorming session for future reference"
+      }
+    ],
+    
+    "periodic": [
+      {
+        "name": "Time Window Enforcer",
+        "interval": 300,
+        "command": "bash .brainstorm/check-phase-time.sh",
+        "description": "Checks phase time limits every 5 minutes"
+      },
+      {
+        "name": "Model Search Reminder",
+        "interval": 600,
+        "command": "phase=$(cat .brainstorm/current-phase.txt 2>/dev/null); if [[ $phase == 'ANALYSIS' ]]; then echo '🔍 REMINDER: Have you searched Ollama/HuggingFace for relevant models?'; fi",
+        "description": "Reminds to search for AI models during analysis"
+      }
+    ],
+    
+    "custom": {
+      "phaseTransitions": [
+        {
+          "name": "Data Gathering Validator",
+          "trigger": "phase-complete:DATA_GATHERING",
+          "command": "if [ ! -f .brainstorm/data-sources.md ] || [ $(wc -l < .brainstorm/data-sources.md) -lt 3 ]; then echo '❌ Insufficient data gathered. Need at least 3 sources.'; exit 1; fi",
+          "description": "Validates sufficient data before moving to analysis"
+        },
+        {
+          "name": "Analysis QA Checker",
+          "trigger": "phase-complete:ANALYSIS",
+          "command": "if [ ! -f .brainstorm/analysis-qa.md ]; then echo '❌ Analysis QA required before solution generation'; exit 1; fi",
+          "description": "Ensures QA of analysis is complete"
+        },
+        {
+          "name": "Solution Diversity Checker",
+          "trigger": "phase-complete:SOLUTION_GENERATION",
+          "command": "count=$(grep -c '^##' .brainstorm/solutions.md 2>/dev/null || echo 0); if [ $count -lt 5 ]; then echo '❌ Need at least 5 solution ideas. Use Task tool to spawn 5 subagents for more ideas!'; exit 1; fi",
+          "description": "Ensures adequate solution brainstorming with parallel generation"
+        },
+        {
+          "name": "Parallel Solution Generation",
+          "trigger": "phase-start:SOLUTION_GENERATION",
+          "command": "echo '🧠 SOLUTION GENERATION: Each CASPER agent spawn 5 subagents = 25-50 parallel ideas! High temperature brainstorming mode activated!'",
+          "description": "Maximizes creative output through parallelization"
+        },
+        {
+          "name": "Consensus Builder",
+          "trigger": "phase-complete:SOLUTION_SELECTION",
+          "command": "if [ ! -f .brainstorm/solution-votes.json ] || [ ! -f .brainstorm/selected-solutions.md ]; then echo '❌ Solution voting/selection incomplete'; exit 1; fi",
+          "description": "Ensures proper solution selection process"
+        }
+      ],
+      
+      "agentCollaboration": [
+        {
+          "name": "Multi-Agent Problem Understanding",
+          "trigger": "agent-join",
+          "command": "echo \"Agent $CLAUDE_AGENT_ID joined. Sharing problem statement...\" && cp .brainstorm/problem-statement.md .brainstorm/agents/$CLAUDE_AGENT_ID/",
+          "description": "Ensures all agents understand the problem"
+        },
+        {
+          "name": "Agent Idea Collector",
+          "trigger": "solution-generation",
+          "command": "echo \"$CLAUDE_AGENT_ID: $CLAUDE_SOLUTION_IDEA\" >> .brainstorm/all-agent-ideas.md",
+          "description": "Collects ideas from all participating agents"
+        },
+        {
+          "name": "Dissent Documenter",
+          "trigger": "solution-vote:dissent",
+          "command": "echo \"$CLAUDE_AGENT_ID dissents: $CLAUDE_DISSENT_REASON\" >> .brainstorm/dissenting-opinions.md",
+          "description": "Documents disagreements for future learning"
+        }
+      ]
+    }
+  }
+}

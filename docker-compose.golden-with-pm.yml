@@ -1,0 +1,260 @@
+version: '3.8'
+
+services:
+  # Project Manager with Linear focus
+  pm:
+    image: casper-golden:fixed
+    container_name: casper-pm
+    hostname: project-manager
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - LINEAR_API_KEY=${LINEAR_API_KEY}
+      - GITHUB_PAT_KEY=${GITHUB_PAT_KEY}
+      - GITHUB_USERNAME=${GITHUB_USERNAME}
+      - AGENT_ROLE=project-manager
+      - AGENT_NAME=PM-Linear
+    volumes:
+      - ./projects:/home/claude/workspace/projects
+      - ./scripts:/home/claude/workspace/scripts:ro
+      - ./configs:/home/claude/workspace/configs:ro
+      - ./logs/pm:/home/claude/workspace/logs
+      - ./.env:/home/claude/workspace/.env:ro
+      - ./linear-cache:/home/claude/workspace/linear-cache
+      - pm-claude:/home/claude/.claude
+      - pm-config:/home/claude/.config/claude-code
+    networks:
+      - casper-net
+    command: ["/bin/bash", "-c", "tail -f /dev/null"]
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+
+  # Policeman with full Claude Code capabilities
+  policeman:
+    image: casper-golden:fixed
+    container_name: casper-policeman
+    hostname: policeman
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - LINEAR_API_KEY=${LINEAR_API_KEY:-}
+      - GITHUB_PAT_KEY=${GITHUB_PAT_KEY}
+      - GITHUB_USERNAME=${GITHUB_USERNAME}
+      - AGENT_ROLE=orchestrator
+      - AGENT_NAME=Policeman-Master
+    volumes:
+      - ./projects:/home/claude/workspace/projects
+      - ./hooks:/home/claude/workspace/hooks:ro
+      - ./configs:/home/claude/workspace/configs:ro
+      - ./logs/policeman:/home/claude/workspace/logs
+      - ./.env:/home/claude/workspace/.env:ro
+      - ./scripts:/home/claude/workspace/scripts:ro
+      - policeman-claude:/home/claude/.claude
+      - policeman-config:/home/claude/.config/claude-code
+    networks:
+      - casper-net
+    ports:
+      - "8080:8080"  # API endpoint
+      - "8081:8081"  # Claude Code UI (if available)
+      - "2222:22"    # SSH access
+    command: ["/bin/bash", "-c", "tail -f /dev/null"]
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 4G
+
+  # Developer 1 with Claude Code
+  developer-1:
+    image: casper-golden:fixed
+    container_name: casper-developer-1
+    hostname: developer-1
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - LINEAR_API_KEY=${LINEAR_API_KEY}
+      - GITHUB_PAT_KEY=${GITHUB_PAT_KEY}
+      - GITHUB_USERNAME=${GITHUB_USERNAME}
+      - AGENT_ROLE=developer
+      - AGENT_NAME=Developer-01
+      - AGENT_SPECIALIZATION=frontend
+    volumes:
+      - ./projects:/home/claude/workspace/projects
+      - ./hooks:/home/claude/workspace/hooks:ro
+      - ./configs:/home/claude/workspace/configs:ro
+      - ./logs/developer-1:/home/claude/workspace/logs
+      - ./.env:/home/claude/workspace/.env:ro
+      - ./scripts:/home/claude/workspace/scripts:ro
+      - developer1-claude:/home/claude/.claude
+      - developer1-config:/home/claude/.config/claude-code
+    networks:
+      - casper-net
+    ports:
+      - "2223:22"    # SSH access
+    command: ["/bin/bash", "-c", "tail -f /dev/null"]
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+
+  # Developer 2 with Claude Code
+  developer-2:
+    image: casper-golden:fixed
+    container_name: casper-developer-2
+    hostname: developer-2
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - LINEAR_API_KEY=${LINEAR_API_KEY}
+      - GITHUB_PAT_KEY=${GITHUB_PAT_KEY}
+      - GITHUB_USERNAME=${GITHUB_USERNAME}
+      - AGENT_ROLE=developer
+      - AGENT_NAME=Developer-02
+      - AGENT_SPECIALIZATION=backend
+    volumes:
+      - ./projects:/home/claude/workspace/projects
+      - ./hooks:/home/claude/workspace/hooks:ro
+      - ./configs:/home/claude/workspace/configs:ro
+      - ./logs/developer-2:/home/claude/workspace/logs
+      - ./.env:/home/claude/workspace/.env:ro
+      - ./scripts:/home/claude/workspace/scripts:ro
+      - developer2-claude:/home/claude/.claude
+      - developer2-config:/home/claude/.config/claude-code
+    networks:
+      - casper-net
+    ports:
+      - "2224:22"    # SSH access
+    command: ["/bin/bash", "-c", "tail -f /dev/null"]
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+
+  # Tester with Claude Code
+  tester:
+    image: casper-golden:fixed
+    container_name: casper-tester
+    hostname: tester
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - LINEAR_API_KEY=${LINEAR_API_KEY}
+      - GITHUB_PAT_KEY=${GITHUB_PAT_KEY}
+      - GITHUB_USERNAME=${GITHUB_USERNAME}
+      - AGENT_ROLE=tester
+      - AGENT_NAME=Tester-01
+    volumes:
+      - ./projects:/home/claude/workspace/projects
+      - ./hooks:/home/claude/workspace/hooks:ro
+      - ./configs:/home/claude/workspace/configs:ro
+      - ./logs/tester:/home/claude/workspace/logs
+      - ./.env:/home/claude/workspace/.env:ro
+      - ./scripts:/home/claude/workspace/scripts:ro
+      - tester-claude:/home/claude/.claude
+      - tester-config:/home/claude/.config/claude-code
+    networks:
+      - casper-net
+    ports:
+      - "2225:22"    # SSH access
+    command: ["/bin/bash", "-c", "tail -f /dev/null"]
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  # Redis for communication
+  redis:
+    image: redis:alpine
+    container_name: casper-redis
+    hostname: redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    networks:
+      - casper-net
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # PostgreSQL for task persistence
+  postgres:
+    image: postgres:15-alpine
+    container_name: casper-postgres
+    hostname: postgres
+    environment:
+      - POSTGRES_DB=claude_orchestration
+      - POSTGRES_USER=claude
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-secure_password}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - casper-net
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  # Web Dashboard
+  dashboard:
+    image: nginx:alpine
+    container_name: casper-dashboard
+    hostname: dashboard
+    volumes:
+      - ./dashboard:/usr/share/nginx/html:ro
+      - ./configs/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - casper-net
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+networks:
+  casper-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  # PM volumes
+  pm-claude:
+  pm-config:
+  
+  # Policeman volumes
+  policeman-claude:
+  policeman-config:
+  
+  # Developer volumes
+  developer1-claude:
+  developer1-config:
+  developer2-claude:
+  developer2-config:
+  
+  # Tester volumes
+  tester-claude:
+  tester-config:
+  
+  # Data volumes
+  redis-data:
+  postgres-data:

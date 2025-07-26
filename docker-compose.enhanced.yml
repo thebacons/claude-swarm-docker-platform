@@ -18,13 +18,17 @@ services:
       - AGENT_NAME=Policeman-01
       - AUTO_UPDATE_CLAUDE=false
       - LINEAR_API_KEY=${LINEAR_API_KEY:-}
-      - GITHUB_TOKEN=${GITHUB_PAT_KEY:-}
+      - GITHUB_PAT_KEY=${GITHUB_PAT_KEY}
+      - GITHUB_USERNAME=${GITHUB_USERNAME}
     volumes:
       - ./projects:/workspace/projects
       - ./hooks:/workspace/hooks:ro
       - ./configs:/workspace/configs:ro
       - ./logs/policeman:/workspace/logs
       - ./.env:/workspace/.env:ro
+      - ./swarm-orchestrator.py:/workspace/scripts/swarm-orchestrator.py:ro
+      - ./demo-swarm.py:/workspace/scripts/demo-swarm.py:ro
+      - ./swarm-config.yaml:/workspace/scripts/swarm-config.yaml:ro
       - policeman-claude:/home/developer/.claude
       - policeman-cache:/home/developer/.cache
     networks:
@@ -47,6 +51,8 @@ services:
       - AGENT_NAME=Developer-01
       - AGENT_SPECIALIZATION=frontend
       - AUTO_UPDATE_CLAUDE=false
+      - GITHUB_PAT_KEY=${GITHUB_PAT_KEY}
+      - GITHUB_USERNAME=${GITHUB_USERNAME}
     volumes:
       - ./projects:/workspace/projects
       - ./hooks:/workspace/hooks:ro
@@ -75,6 +81,8 @@ services:
       - AGENT_NAME=Developer-02
       - AGENT_SPECIALIZATION=backend
       - AUTO_UPDATE_CLAUDE=false
+      - GITHUB_PAT_KEY=${GITHUB_PAT_KEY}
+      - GITHUB_USERNAME=${GITHUB_USERNAME}
     volumes:
       - ./projects:/workspace/projects
       - ./hooks:/workspace/hooks:ro
@@ -102,6 +110,8 @@ services:
       - AGENT_ROLE=tester
       - AGENT_NAME=Tester-01
       - AUTO_UPDATE_CLAUDE=false
+      - GITHUB_PAT_KEY=${GITHUB_PAT_KEY}
+      - GITHUB_USERNAME=${GITHUB_USERNAME}
     volumes:
       - ./projects:/workspace/projects
       - ./hooks:/workspace/hooks:ro

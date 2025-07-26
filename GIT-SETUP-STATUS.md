@@ -43,7 +43,7 @@ After creating the repository, run these commands:
 cd /mnt/c/Users/colin/Documents-local/91_Claude-Code/claude-swarm-docker-spawn
 
 # Add GitHub remote
-git remote add origin https://github.com/thebacons/claude-swarm-docker-platform.git
+git remote add origin https://github.com/${GITHUB_USERNAME}/claude-swarm-docker-platform.git
 
 # Push main branch
 git push -u origin main

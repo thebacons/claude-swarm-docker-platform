@@ -1,0 +1,48 @@
+{
+  "name": "Agent 1 - Unauthorized Changes Prevention",
+  "description": "Blocks unauthorized changes and enforces approval workflows",
+  "hooks": {
+    "preToolUse": [
+      {
+        "id": "block-production-edits",
+        "matcher": {
+          "tools": ["Edit", "MultiEdit", "Write"],
+          "path": ".*/(production|live|main|master)/.*"
+        },
+        "command": "echo 'ERROR: Direct production changes blocked! Create feature branch first.' && exit 1"
+      },
+      {
+        "id": "require-approval-for-critical",
+        "matcher": {
+          "tools": ["Edit", "Write"],
+          "path": ".*(config|env|settings|credentials|secrets).*"
+        },
+        "command": "bash -c 'if [ ! -f .approved-changes ]; then echo \"ERROR: Critical file change requires approval. Run: echo $CLAUDE_FILE_PATH >> .approved-changes\"; exit 1; fi'"
+      },
+      {
+        "id": "enforce-change-request",
+        "matcher": {
+          "tools": ["Bash"],
+          "command": ".*(rm|delete|drop|truncate).*"
+        },
+        "command": "echo 'BLOCKED: Destructive command requires change request. Create ticket in Linear first.' && exit 1"
+      },
+      {
+        "id": "block-direct-database-changes",
+        "matcher": {
+          "tools": ["Bash"],
+          "command": ".*(mysql|psql|mongo|redis-cli).*(DELETE|DROP|TRUNCATE|UPDATE).*"
+        },
+        "command": "echo 'ERROR: Direct database modifications blocked. Use migration scripts.' && exit 1"
+      },
+      {
+        "id": "require-review-for-security",
+        "matcher": {
+          "tools": ["Edit", "Write"],
+          "path": ".*(auth|security|permission|access|token).*"
+        },
+        "command": "bash -c 'echo \"SECURITY WARNING: Changes to $CLAUDE_FILE_PATH require security review\"; read -p \"Type REVIEWED to continue: \" response; [ \"$response\" = \"REVIEWED\" ] || exit 1'"
+      }
+    ]
+  }
+}

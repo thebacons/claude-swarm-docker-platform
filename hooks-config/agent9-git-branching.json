@@ -1,0 +1,67 @@
+{
+  "name": "Agent 9 - Git Branching Enforcement",
+  "description": "Enforces proper git branching strategies",
+  "hooks": {
+    "preToolUse": [
+      {
+        "id": "block-main-commits",
+        "matcher": {
+          "tools": ["Bash"],
+          "command": ".*git (commit|push).*"
+        },
+        "command": "bash -c 'branch=$(git branch --show-current 2>/dev/null); if [[ \"$branch\" =~ ^(main|master)$ ]]; then echo \"ERROR: Direct commits to $branch prohibited. Create feature branch:\"; echo \"  git checkout -b feature/your-feature-name\"; exit 1; fi'"
+      },
+      {
+        "id": "enforce-branch-naming",
+        "matcher": {
+          "tools": ["Bash"],
+          "command": ".*git checkout -b.*"
+        },
+        "command": "bash -c 'if [[ ! \"$CLAUDE_COMMAND\" =~ -b[[:space:]]+(feature|bugfix|hotfix|release|chore)/ ]]; then echo \"ERROR: Branch name must follow pattern: {feature|bugfix|hotfix|release|chore}/description\"; echo \"Example: git checkout -b feature/add-user-authentication\"; exit 1; fi'"
+      },
+      {
+        "id": "require-linear-ticket",
+        "matcher": {
+          "tools": ["Bash"],
+          "command": ".*git checkout -b feature/.*"
+        },
+        "command": "bash -c 'if [[ ! \"$CLAUDE_COMMAND\" =~ (BAC|bac)-[0-9]+ ]]; then echo \"WARNING: Feature branch should include Linear ticket (e.g., feature/BAC-123-description)\"; fi'"
+      },
+      {
+        "id": "prevent-force-push",
+        "matcher": {
+          "tools": ["Bash"],
+          "command": ".*git push.*--force.*"
+        },
+        "command": "echo 'DANGEROUS: Force push detected!' && echo 'This can destroy team work. Use --force-with-lease instead.' && echo 'Type FORCE_CONFIRMED to proceed:' && read resp && [ \"$resp\" = \"FORCE_CONFIRMED\" ] || exit 1"
+      }
+    ],
+    "postToolUse": [
+      {
+        "id": "update-branch-status",
+        "matcher": {
+          "tools": ["Bash"],
+          "command": ".*git checkout.*"
+        },
+        "command": "bash -c 'echo \"Current branch: $(git branch --show-current)\" > .git-branch-status && git log --oneline -5 >> .git-branch-status'"
+      },
+      {
+        "id": "remind-pr-creation",
+        "matcher": {
+          "tools": ["Bash"],
+          "command": ".*git push.*origin.*"
+        },
+        "command": "echo 'NEXT STEPS:' && echo '1. Create Pull Request' && echo '2. Add reviewers' && echo '3. Link Linear ticket' && echo '4. Run CI/CD checks'"
+      }
+    ],
+    "preCommit": [
+      {
+        "id": "commit-message-format",
+        "matcher": {
+          "message": ".*"
+        },
+        "command": "bash -c 'if [[ ! \"$CLAUDE_COMMIT_MESSAGE\" =~ ^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert):[[:space:]] ]]; then echo \"ERROR: Commit message must follow conventional format:\"; echo \"  <type>: <description>\"; echo \"Types: feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert\"; exit 1; fi'"
+      }
+    ]
+  }
+}

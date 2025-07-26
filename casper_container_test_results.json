@@ -1,0 +1,54 @@
+{
+  "test_timestamp": "2025-07-25T07:05:12.042572",
+  "results": [
+    {
+      "name": "developer-1",
+      "port": 2223,
+      "timestamp": "2025-07-25T07:05:11.049387",
+      "connection": "N/A (using docker exec)",
+      "claude_code": "1.0.30 (Claude Code)",
+      "agent_role": "Not Found",
+      "python_version": "Python 3.11.13",
+      "container_hostname": "developer-1",
+      "status": "Running"
+    },
+    {
+      "name": "developer-2",
+      "port": 2224,
+      "timestamp": "2025-07-25T07:05:11.049455",
+      "connection": "N/A (using docker exec)",
+      "claude_code": "1.0.30 (Claude Code)",
+      "agent_role": "Not Found",
+      "python_version": "Python 3.11.13",
+      "container_hostname": "developer-2",
+      "status": "Running"
+    },
+    {
+      "name": "policeman",
+      "port": 2222,
+      "timestamp": "2025-07-25T07:05:11.049208",
+      "connection": "N/A (using docker exec)",
+      "claude_code": "Not Found",
+      "agent_role": "Not Found",
+      "python_version": "Not Found",
+      "container_hostname": "Unknown",
+      "error": "Container not running"
+    },
+    {
+      "name": "tester",
+      "port": 2225,
+      "timestamp": "2025-07-25T07:05:11.049644",
+      "connection": "N/A (using docker exec)",
+      "claude_code": "1.0.30 (Claude Code)",
+      "agent_role": "Not Found",
+      "python_version": "Python 3.11.13",
+      "container_hostname": "tester",
+      "status": "Running"
+    }
+  ],
+  "summary": {
+    "total_tested": 4,
+    "running": 3,
+    "with_claude_code": 3
+  }
+}

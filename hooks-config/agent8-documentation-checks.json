@@ -1,0 +1,58 @@
+{
+  "name": "Agent 8 - Documentation Enforcement",
+  "description": "Forces documentation checks and updates",
+  "hooks": {
+    "postToolUse": [
+      {
+        "id": "check-function-docs",
+        "matcher": {
+          "tools": ["Edit", "Write"],
+          "content": ".*(function|def|class|interface)\\s+\\w+.*"
+        },
+        "command": "bash -c 'echo \"Checking documentation...\"; if ! grep -B3 \"$CLAUDE_CONTENT\" \"$CLAUDE_FILE_PATH\" | grep -E \"(//|#|/\\*\\*|\\\"\\\"\\\")\"; then echo \"WARNING: Undocumented function/class added\"; fi'"
+      },
+      {
+        "id": "update-readme-reminder",
+        "matcher": {
+          "tools": ["Write"],
+          "path": ".*\\.(js|py|go|java)$"
+        },
+        "command": "bash -c 'if [ -f README.md ]; then echo \"REMINDER: Update README.md if new functionality added\"; echo \"New file: $CLAUDE_FILE_PATH\" >> .pending-readme-updates; fi'"
+      },
+      {
+        "id": "api-documentation-sync",
+        "matcher": {
+          "tools": ["Edit"],
+          "path": ".*(route|endpoint|api|controller).*"
+        },
+        "command": "echo 'API CHANGE: Update API documentation' && echo '- Endpoint: Check OpenAPI/Swagger spec' && echo '- Examples: Update request/response samples' && echo '- Changelog: Document breaking changes'"
+      },
+      {
+        "id": "verify-inline-comments",
+        "matcher": {
+          "tools": ["Edit", "MultiEdit"],
+          "content": ".*(algorithm|complex|TODO|FIXME|HACK).*"
+        },
+        "command": "echo 'COMPLEX CODE DETECTED: Ensure adequate inline comments for:' && echo \"$CLAUDE_CONTENT\" | grep -n -E '(algorithm|complex|TODO|FIXME|HACK)'"
+      }
+    ],
+    "preCommit": [
+      {
+        "id": "documentation-completeness",
+        "matcher": {
+          "files": ".*"
+        },
+        "command": "bash -c 'undoc=$(grep -r \"TODO:.*document\" . 2>/dev/null | wc -l); if [ $undoc -gt 0 ]; then echo \"WARNING: $undoc undocumented items found\"; fi'"
+      }
+    ],
+    "userPromptSubmit": [
+      {
+        "id": "suggest-documentation-update",
+        "matcher": {
+          "prompt": ".*(implement|create|add|feature|function).*"
+        },
+        "command": "echo 'DOCUMENTATION REMINDER: After implementation, update:\\n1. README.md - Feature description\\n2. API docs - New endpoints\\n3. Code comments - Complex logic\\n4. CHANGELOG.md - User-facing changes'"
+      }
+    ]
+  }
+}

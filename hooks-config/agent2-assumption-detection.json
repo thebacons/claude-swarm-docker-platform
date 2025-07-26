@@ -1,0 +1,39 @@
+{
+  "name": "Agent 2 - Assumption Detection",
+  "description": "Detects and blocks 'should work' assumptions without testing",
+  "hooks": {
+    "postResponse": [
+      {
+        "id": "detect-untested-assumptions",
+        "matcher": {
+          "response": ".*(should work|probably works|likely works|seems to work|appears to work).*"
+        },
+        "command": "echo 'WARNING: Assumption detected! Running mandatory tests...' && npm test || (echo 'FAILED: Tests required before assuming functionality' && exit 1)"
+      },
+      {
+        "id": "block-theoretical-fixes",
+        "matcher": {
+          "response": ".*(this fix|this solution|this approach).*(should|would|could).*(solve|fix|resolve).*"
+        },
+        "command": "echo 'ASSUMPTION ALERT: Theoretical fix detected. Creating test case...' && echo 'Test required for: $CLAUDE_LAST_ACTION' >> pending-tests.log"
+      },
+      {
+        "id": "force-verification",
+        "matcher": {
+          "response": ".*(implemented|fixed|resolved|completed).*(feature|bug|issue).*"
+        },
+        "command": "bash -c 'echo \"VERIFY: Claim of completion detected. Running verification...\"; ./scripts/verify-last-change.sh || echo \"UNVERIFIED: Manual testing required\"'"
+      }
+    ],
+    "postToolUse": [
+      {
+        "id": "verify-code-changes",
+        "matcher": {
+          "tools": ["Edit", "Write"],
+          "path": ".*\\.(js|ts|py|java|go)$"
+        },
+        "command": "bash -c 'echo \"Code change detected in $CLAUDE_FILE_PATH\"; if command -v npm >/dev/null && [ -f package.json ]; then npm test -- $CLAUDE_FILE_PATH 2>/dev/null || echo \"WARNING: No tests for $CLAUDE_FILE_PATH\"; fi'"
+      }
+    ]
+  }
+}

@@ -1,182 +1,76 @@
 #!/bin/bash
 
-# Claude Authentication Fix Script for Docker Container
-
-# Colors for output
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m' # No Color
-
-echo -e "${BLUE}=== Claude Authentication Fix for Docker ===${NC}"
+echo "=== Fixing Claude Code Authentication ==="
 echo ""
 
-# Check if container is running
-if ! docker-compose ps | grep -q "claude-swarm.*Up"; then
-    echo -e "${RED}Error: Container not running!${NC}"
-    echo -e "${YELLOW}Starting container...${NC}"
-    docker-compose up -d
-    sleep 5
-fi
-
-# Get API key from .env
-if [ ! -f .env ]; then
-    echo -e "${RED}Error: .env file not found!${NC}"
-    exit 1
-fi
-
-# Source the .env file
-export $(cat .env | grep -v '^#' | xargs)
-
-if [ -z "$ANTHROPIC_API_KEY" ]; then
-    echo -e "${RED}Error: ANTHROPIC_API_KEY not found in .env!${NC}"
-    exit 1
-fi
-
-echo -e "${GREEN}Found API key in .env${NC}"
-echo ""
-
-# Method 1: Install Python Anthropic SDK
-echo -e "${YELLOW}Installing Anthropic Python SDK...${NC}"
-docker exec claude-swarm bash -c '
-pip3 install --user anthropic requests
-' || echo -e "${RED}Failed to install Python SDK${NC}"
-
-# Method 2: Create Python wrapper
-echo -e "${YELLOW}Creating Claude API wrapper...${NC}"
-docker exec claude-swarm bash -c '
-cat > /workspace/claude-api.py << '\''EOF'\''
-#!/usr/bin/env python3
-import os
-import sys
-import json
-from anthropic import Anthropic
-
-# Initialize with API key
-client = Anthropic(
-    api_key=os.environ.get("ANTHROPIC_API_KEY")
-)
-
-def send_message(prompt, model="claude-3-5-sonnet-20241022", max_tokens=1024):
-    """Send a message to Claude and return the response."""
-    try:
-        message = client.messages.create(
-            model=model,
-            max_tokens=max_tokens,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
-        )
-        return message.content[0].text
-    except Exception as e:
-        return f"Error: {str(e)}"
-
-def interactive_mode():
-    """Run in interactive mode."""
-    print("Claude API Interactive Mode (type '\''exit'\'' to quit)")
-    print("-" * 50)
+# Option 1: Copy credentials from host to containers
+copy_credentials() {
+    echo "Option 1: Copying credentials from host..."
     
-    while True:
-        try:
-            prompt = input("\nYou: ").strip()
-            if prompt.lower() in ['\''exit'\'', '\''quit'\'', '\''q'\'']:
-                break
-            
-            if prompt:
-                print("\nClaude: ", end='\'''\'', flush=True)
-                response = send_message(prompt)
-                print(response)
-        except KeyboardInterrupt:
-            print("\n\nExiting...")
-            break
-        except Exception as e:
-            print(f"\nError: {e}")
-
-if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        # Command line mode
-        prompt = " ".join(sys.argv[1:])
-        print(send_message(prompt))
-    else:
-        # Interactive mode
-        interactive_mode()
-EOF
-
-chmod +x /workspace/claude-api.py
-'
-
-# Method 3: Create a simple test script
-echo -e "${YELLOW}Creating test script...${NC}"
-docker exec claude-swarm bash -c '
-cat > /workspace/test-claude.py << '\''EOF'\''
-#!/usr/bin/env python3
-import os
-import sys
-
-# Add parent directory to path
-sys.path.insert(0, "/home/developer/.local/lib/python3.10/site-packages")
-
-try:
-    from anthropic import Anthropic
+    # Copy the credentials file to each container
+    for container in casper-policeman casper-developer-1 casper-developer-2 casper-tester; do
+        echo "Copying to $container..."
+        docker cp ~/.claude/.credentials.json $container:/home/claude/.claude/.credentials.json
+        docker exec $container chown claude:claude /home/claude/.claude/.credentials.json
+        docker exec $container chmod 600 /home/claude/.claude/.credentials.json
+    done
     
-    client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+    echo "✅ Credentials copied to all containers"
+}
+
+# Option 2: Use API key authentication
+setup_api_key() {
+    echo "Option 2: Using API key authentication..."
     
-    print("Testing Claude connection...")
-    response = client.messages.create(
-        model="claude-3-5-sonnet-20241022",
-        max_tokens=100,
-        messages=[{"role": "user", "content": "Say '\''Hello from Docker!'\'' and nothing else."}]
-    )
-    print("Success! Claude says:", response.content[0].text)
+    # Create a script to auto-select API key option
+    for container in casper-policeman casper-developer-1 casper-developer-2 casper-tester; do
+        echo "Setting up $container..."
+        
+        # This will:
+        # 1. Select "1" for dark theme
+        # 2. Select "2" for API key
+        # 3. Use the ANTHROPIC_API_KEY from environment
+        docker exec $container bash -c 'echo -e "1\n2\n" | claude "test" 2>&1 > /dev/null || true'
+    done
     
-except Exception as e:
-    print(f"Error: {e}")
-    print("\nTroubleshooting:")
-    print("1. Make sure ANTHROPIC_API_KEY is set in .env")
-    print("2. Check your API key is valid")
-    print("3. Ensure you have internet connectivity")
-EOF
+    echo "✅ API key authentication configured"
+}
 
-chmod +x /workspace/test-claude.py
-'
+# Option 3: Manual setup instructions
+manual_setup() {
+    echo "Option 3: Manual Setup Instructions"
+    echo ""
+    echo "When you SSH into a container and run claude:"
+    echo "1. Press 1 for dark theme"
+    echo "2. Press 1 for Claude subscription (if you have one)"
+    echo "   OR"
+    echo "   Press 2 for API key (uses ANTHROPIC_API_KEY from environment)"
+    echo ""
+    echo "This is a one-time setup per container."
+}
 
-# Method 4: Create convenience aliases
-echo -e "${YELLOW}Setting up convenience commands...${NC}"
-docker exec claude-swarm bash -c '
-cat >> ~/.bashrc << '\''EOF'\''
+echo "Choose authentication method:"
+echo "1. Copy credentials from host (uses your Claude subscription)"
+echo "2. Use API key (uses ANTHROPIC_API_KEY environment variable)"
+echo "3. Show manual setup instructions"
+echo ""
+read -p "Enter choice (1-3): " choice
 
-# Claude shortcuts
-alias claude-test="python3 /workspace/test-claude.py"
-alias claude-chat="python3 /workspace/claude-api.py"
-alias claude-api="python3 /workspace/claude-api.py"
-
-# Export API key if available
-if [ -f /workspace/.env ]; then
-    export $(cat /workspace/.env | grep -v "^#" | xargs)
-fi
-EOF
-'
+case $choice in
+    1)
+        copy_credentials
+        ;;
+    2)
+        setup_api_key
+        ;;
+    3)
+        manual_setup
+        ;;
+    *)
+        echo "Invalid choice"
+        ;;
+esac
 
 echo ""
-echo -e "${GREEN}=== Setup Complete! ===${NC}"
-echo ""
-echo -e "${BLUE}To test Claude access:${NC}"
-echo "1. Enter the container: ${YELLOW}./shell.sh${NC}"
-echo "2. Run test: ${YELLOW}python3 /workspace/test-claude.py${NC}"
-echo ""
-echo -e "${BLUE}To use Claude interactively:${NC}"
-echo "1. Enter the container: ${YELLOW}./shell.sh${NC}"
-echo "2. Run: ${YELLOW}claude-chat${NC} or ${YELLOW}python3 /workspace/claude-api.py${NC}"
-echo ""
-echo -e "${BLUE}For one-off commands:${NC}"
-echo "1. Enter the container: ${YELLOW}./shell.sh${NC}"
-echo "2. Run: ${YELLOW}claude-api \"Your prompt here\"${NC}"
-echo ""
-
-# Run a quick test
-echo -e "${YELLOW}Running quick test...${NC}"
-docker exec claude-swarm bash -c '
-export ANTHROPIC_API_KEY="'$ANTHROPIC_API_KEY'"
-python3 /workspace/test-claude.py
-'
+echo "=== Testing Claude ==="
+docker exec casper-policeman claude "Say hello" 2>&1 | head -5 || echo "You may need to complete setup manually"

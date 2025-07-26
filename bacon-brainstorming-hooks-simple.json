@@ -1,0 +1,52 @@
+{
+  "comment": "Simplified Bacon's Brainstorming Hooks - Core enforcement only",
+  "hooks": {
+    "preToolUse": [
+      {
+        "name": "Problem Statement Required",
+        "matcher": {"tools": ["Edit", "Write", "MultiEdit"]},
+        "command": "if [ ! -f .brainstorm/problem-statement.md ] && [[ \"$CLAUDE_FILE_PATH\" != \".brainstorm/problem-statement.md\" ]]; then echo '❌ Create .brainstorm/problem-statement.md first!'; exit 1; fi",
+        "description": "Ensures problem is defined before any work"
+      },
+      {
+        "name": "No Code During Analysis",
+        "matcher": {"tools": ["Edit", "Write", "MultiEdit"]},
+        "command": "if [ -f .brainstorm/current-phase.txt ] && grep -qE 'PROBLEM_DEFINITION|DATA_GATHERING' .brainstorm/current-phase.txt && [[ \"$CLAUDE_FILE_PATH\" =~ \\.(py|js|ts|java|go|rs)$ ]]; then echo '⚠️ No coding during analysis phases!'; exit 1; fi",
+        "description": "Prevents premature implementation"
+      }
+    ],
+    
+    "postToolUse": [
+      {
+        "name": "Brainstorm Logger",
+        "matcher": {"tools": ["Write", "Edit", "MultiEdit", "Read"]},
+        "command": "if [[ \"$CLAUDE_FILE_PATH\" == .brainstorm/* ]]; then echo \"$(date): $CLAUDE_TOOL_NAME on $CLAUDE_FILE_PATH\" >> .brainstorm/activity.log; fi",
+        "description": "Tracks brainstorming activities"
+      },
+      {
+        "name": "Citation Reminder",
+        "matcher": {"tools": ["Write", "Edit"]},
+        "command": "if [[ \"$CLAUDE_FILE_PATH\" == \".brainstorm/data-sources.md\" ]]; then echo '📚 Remember: Use [Source: URL/Reference] format for all data!'; fi",
+        "description": "Reminds about citation format"
+      }
+    ],
+    
+    "preCommit": [
+      {
+        "name": "SSC Required",
+        "matcher": {"branch": "*"},
+        "command": "if [ -d .brainstorm ] && [ ! -f .brainstorm/ssc-collection.md ]; then echo '❌ Complete STOP/START/CONTINUE in .brainstorm/ssc-collection.md before committing!'; exit 1; fi",
+        "description": "Ensures learning capture"
+      }
+    ],
+    
+    "periodic": [
+      {
+        "name": "Phase Timer",
+        "interval": 600,
+        "command": "if [ -f .brainstorm/current-phase.txt ]; then phase=$(cat .brainstorm/current-phase.txt); echo \"⏱️ Current phase: $phase - Remember time limits!\"; fi",
+        "description": "Periodic phase reminder"
+      }
+    ]
+  }
+}

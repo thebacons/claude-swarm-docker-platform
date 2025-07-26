@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CASPER Multi-Agent Orchestration - Live Visualization</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            color: white;
+            overflow-x: hidden;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin: 0;
+            background: linear-gradient(45deg, #00d4ff, #7c3aed, #f59e0b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            margin: 10px 0;
+            opacity: 0.8;
+        }
+        
+        .controls {
+            position: absolute;
+            top: 140px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .legend {
+            position: absolute;
+            top: 140px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            font-size: 0.9em;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+        }
+        
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        
+        .stats {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            font-size: 0.9em;
+        }
+        
+        .log-panel {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 400px;
+            height: 200px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            font-size: 0.8em;
+            overflow-y: auto;
+        }
+        
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        
+        .log-entry.info { color: #00d4ff; }
+        .log-entry.success { color: #10b981; }
+        .log-entry.warning { color: #f59e0b; }
+        .log-entry.error { color: #ef4444; }
+        
+        button {
+            background: linear-gradient(45deg, #7c3aed, #3b82f6);
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>CASPER Multi-Agent Orchestration</h1>
+        <p>Real-Time 50-Agent Parallel Execution Visualization</p>
+    </div>
+    
+    <div class="legend">
+        <h3>🎯 Agent Types</h3>
+        <div class="legend-item">
+            <div class="legend-color" style="background: linear-gradient(45deg, #ec4899, #db2777);"></div>
+            PM Agent (Coordinator)
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: linear-gradient(45deg, #00d4ff, #0099cc);"></div>
+            Policeman (Orchestrator)
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: linear-gradient(45deg, #10b981, #059669);"></div>
+            Developer Agents
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: linear-gradient(45deg, #f59e0b, #d97706);"></div>
+            Tester Agent
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: linear-gradient(45deg, #8b5cf6, #7c3aed);"></div>
+            Observer (Learning)
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: rgba(139, 92, 246, 0.5); border: 1px dashed #8b5cf6;"></div>
+            Subagents (Task Tool)
+        </div>
+    </div>
+    
+    <div class="controls">
+        <h3>🛠️ Controls</h3>
+        <button onclick="togglePause()">⏸️ Pause/Resume</button>
+        <button onclick="spawnSubagents()">🚀 Spawn Subagents</button>
+        <button onclick="simulateTask()">📋 New Task</button>
+        <button onclick="resetNetwork()">🔄 Reset</button>
+    </div>
+    
+    <div class="stats">
+        <h3>📊 Performance</h3>
+        <div>Active Agents: <span id="agentCount">6</span></div>
+        <div>Subagents: <span id="subagentCount">0</span></div>
+        <div>Messages/sec: <span id="messageRate">0</span></div>
+        <div>Speedup: <span id="speedup">1.0x</span></div>
+    </div>
+    
+    <div class="log-panel">
+        <h3>📜 Activity Log</h3>
+        <div id="logContainer"></div>
+    </div>
+
+    <script>
+        let nodes = [];
+        let connections = [];
+        let messages = [];
+        let isPaused = false;
+        let messageCount = 0;
+        let lastMessageTime = 0;
+        
+        // Force-directed graph parameters
+        const REPULSION_FORCE = 5000;
+        const ATTRACTION_FORCE = 0.001;
+        const DAMPING = 0.92;
+        const MIN_DISTANCE = 80;
+        
+        // Node configuration
+        const agentConfig = {
+            pm: { color: [236, 72, 153], size: 25, label: "PM Agent" },
+            policeman: { color: [0, 212, 255], size: 30, label: "Policeman" },
+            developer1: { color: [16, 185, 129], size: 20, label: "Dev-1" },
+            developer2: { color: [16, 185, 129], size: 20, label: "Dev-2" },
+            tester: { color: [245, 158, 11], size: 20, label: "Tester" },
+            observer: { color: [139, 92, 246], size: 22, label: "Observer" }
+        };
+        
+        class Node {
+            constructor(x, y, type, config) {
+                this.x = x;
+                this.y = y;
+                this.vx = 0;
+                this.vy = 0;
+                this.type = type;
+                this.config = config;
+                this.size = config.size;
+                this.label = config.label;
+                this.color = config.color;
+                this.activity = 0;
+                this.pulse = 0;
+                this.subagents = [];
+                this.isSubagent = false;
+                this.parent = null;
+            }
+            
+            applyForce(fx, fy) {
+                this.vx += fx;
+                this.vy += fy;
+            }
+            
+            update() {
+                if (!isPaused && !this.isSubagent) {
+                    // Apply damping
+                    this.vx *= DAMPING;
+                    this.vy *= DAMPING;
+                    
+                    // Update position
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    
+                    // Keep within bounds
+                    const margin = 50;
+                    if (this.x < margin) {
+                        this.x = margin;
+                        this.vx = Math.abs(this.vx) * 0.5;
+                    }
+                    if (this.x > width - margin) {
+                        this.x = width - margin;
+                        this.vx = -Math.abs(this.vx) * 0.5;
+                    }
+                    if (this.y < margin) {
+                        this.y = margin;
+                        this.vy = Math.abs(this.vy) * 0.5;
+                    }
+                    if (this.y > height - margin) {
+                        this.y = height - margin;
+                        this.vy = -Math.abs(this.vy) * 0.5;
+                    }
+                }
+                
+                // Update subagent positions
+                this.subagents.forEach((subagent, i) => {
+                    const angle = (i / this.subagents.length) * TWO_PI;
+                    const distance = 40 + sin(frameCount * 0.02 + i) * 5;
+                    subagent.x = this.x + cos(angle) * distance;
+                    subagent.y = this.y + sin(angle) * distance;
+                });
+                
+                // Update visual effects
+                this.pulse += 0.05;
+                this.activity *= 0.95;
+            }
+            
+            draw() {
+                push();
+                translate(this.x, this.y);
+                
+                // Activity glow
+                if (this.activity > 0.1) {
+                    noStroke();
+                    fill(255, 255, 255, this.activity * 20);
+                    circle(0, 0, this.size * 2 + this.activity * 20);
+                }
+                
+                // Node circle
+                const displaySize = this.size + sin(this.pulse) * 2;
+                strokeWeight(this.isSubagent ? 1 : 2);
+                
+                if (this.isSubagent) {
+                    // Subagent style
+                    stroke(this.color[0], this.color[1], this.color[2], 200);
+                    fill(this.color[0], this.color[1], this.color[2], 100);
+                    drawingContext.setLineDash([3, 3]);
+                    circle(0, 0, displaySize * 0.7);
+                    drawingContext.setLineDash([]);
+                } else {
+                    // Main agent style
+                    stroke(255, 255, 255, 200);
+                    fill(this.color[0], this.color[1], this.color[2], 180);
+                    circle(0, 0, displaySize);
+                    
+                    // Inner gradient effect
+                    noStroke();
+                    for (let i = 3; i > 0; i--) {
+                        fill(255, 255, 255, 30 / i);
+                        circle(0, 0, displaySize * (i / 6));
+                    }
+                }
+                
+                // Label
+                fill(255);
+                noStroke();
+                textAlign(CENTER, CENTER);
+                textSize(this.isSubagent ? 8 : 10);
+                text(this.label, 0, displaySize/2 + 15);
+                
+                pop();
+            }
+            
+            spawnSubagent(index) {
+                const subagent = new Node(this.x, this.y, this.type, {
+                    ...this.config,
+                    size: this.config.size * 0.6,
+                    label: `${this.label}-S${index + 1}`
+                });
+                subagent.isSubagent = true;
+                subagent.parent = this;
+                this.subagents.push(subagent);
+                nodes.push(subagent);
+                return subagent;
+            }
+            
+            addActivity() {
+                this.activity = 1.0;
+            }
+        }
+        
+        class Message {
+            constructor(from, to) {
+                this.from = from;
+                this.to = to;
+                this.progress = 0;
+                this.speed = random(0.02, 0.04);
+                this.particles = [];
+                
+                // Create particle trail
+                for (let i = 0; i < 5; i++) {
+                    this.particles.push({
+                        offset: i * 0.1,
+                        size: random(2, 4)
+                    });
+                }
+            }
+            
+            update() {
+                this.progress += this.speed;
+                if (this.progress >= 1) {
+                    this.to.addActivity();
+                    messageCount++;
+                    return false;
+                }
+                return true;
+            }
+            
+            draw() {
+                // Draw particles
+                this.particles.forEach(particle => {
+                    const p = constrain(this.progress - particle.offset, 0, 1);
+                    const x = lerp(this.from.x, this.to.x, p);
+                    const y = lerp(this.from.y, this.to.y, p);
+                    
+                    noStroke();
+                    fill(100, 200, 255, 200 * (1 - particle.offset));
+                    circle(x, y, particle.size);
+                });
+            }
+        }
+        
+        function setup() {
+            createCanvas(windowWidth, windowHeight - 150);
+            
+            // Create main agents
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const radius = min(width, height) * 0.3;
+            
+            // PM Agent at top
+            nodes.push(new Node(centerX, centerY - radius, 'pm', agentConfig.pm));
+            
+            // Policeman at center
+            nodes.push(new Node(centerX, centerY, 'policeman', agentConfig.policeman));
+            
+            // Others in circle
+            nodes.push(new Node(centerX - radius * 0.8, centerY + radius * 0.4, 'developer1', agentConfig.developer1));
+            nodes.push(new Node(centerX + radius * 0.8, centerY + radius * 0.4, 'developer2', agentConfig.developer2));
+            nodes.push(new Node(centerX, centerY + radius * 0.8, 'tester', agentConfig.tester));
+            nodes.push(new Node(centerX + radius, centerY, 'observer', agentConfig.observer));
+            
+            // Create initial connections
+            updateConnections();
+            
+            // Add initial log
+            addLog('info', 'System initialized with 6 main agents');
+        }
+        
+        function draw() {
+            // Dark background with subtle gradient
+            for (let i = 0; i <= height; i++) {
+                const inter = map(i, 0, height, 0, 1);
+                const c = lerpColor(color(15, 20, 40), color(10, 15, 30), inter);
+                stroke(c);
+                line(0, i, width, i);
+            }
+            
+            if (!isPaused) {
+                // Apply forces between nodes
+                for (let i = 0; i < nodes.length; i++) {
+                    for (let j = i + 1; j < nodes.length; j++) {
+                        const n1 = nodes[i];
+                        const n2 = nodes[j];
+                        
+                        if (n1.isSubagent || n2.isSubagent) continue;
+                        
+                        const dx = n2.x - n1.x;
+                        const dy = n2.y - n1.y;
+                        const dist = sqrt(dx * dx + dy * dy);
+                        
+                        if (dist > 0 && dist < 300) {
+                            // Repulsion
+                            const force = REPULSION_FORCE / (dist * dist);
+                            const fx = (dx / dist) * force;
+                            const fy = (dy / dist) * force;
+                            
+                            n1.applyForce(-fx, -fy);
+                            n2.applyForce(fx, fy);
+                        }
+                        
+                        // Attraction for connected nodes
+                        if (isConnected(n1, n2) && dist > MIN_DISTANCE) {
+                            const force = dist * ATTRACTION_FORCE;
+                            const fx = (dx / dist) * force;
+                            const fy = (dy / dist) * force;
+                            
+                            n1.applyForce(fx, fy);
+                            n2.applyForce(-fx, -fy);
+                        }
+                    }
+                    
+                    // Slight center gravity
+                    const centerDx = width/2 - nodes[i].x;
+                    const centerDy = height/2 - nodes[i].y;
+                    nodes[i].applyForce(centerDx * 0.0001, centerDy * 0.0001);
+                }
+                
+                // Update nodes
+                nodes.forEach(node => node.update());
+                
+                // Update messages
+                messages = messages.filter(msg => msg.update());
+                
+                // Generate new messages periodically
+                if (frameCount % 30 === 0 && random() < 0.7) {
+                    generateMessage();
+                }
+            }
+            
+            // Draw connections
+            strokeWeight(1);
+            stroke(100, 100, 100, 50);
+            connections.forEach(conn => {
+                line(conn.from.x, conn.from.y, conn.to.x, conn.to.y);
+            });
+            
+            // Draw messages
+            messages.forEach(msg => msg.draw());
+            
+            // Draw nodes
+            nodes.forEach(node => node.draw());
+            
+            // Update stats
+            updateStats();
+        }
+        
+        function isConnected(n1, n2) {
+            // PM connects to Policeman
+            if ((n1.type === 'pm' && n2.type === 'policeman') || 
+                (n2.type === 'pm' && n1.type === 'policeman')) return true;
+            
+            // Policeman connects to all others
+            if (n1.type === 'policeman' || n2.type === 'policeman') return true;
+            
+            // Observer connects to all
+            if (n1.type === 'observer' || n2.type === 'observer') return true;
+            
+            return false;
+        }
+        
+        function updateConnections() {
+            connections = [];
+            for (let i = 0; i < nodes.length; i++) {
+                for (let j = i + 1; j < nodes.length; j++) {
+                    if (!nodes[i].isSubagent && !nodes[j].isSubagent && isConnected(nodes[i], nodes[j])) {
+                        connections.push({ from: nodes[i], to: nodes[j] });
+                    }
+                }
+            }
+        }
+        
+        function generateMessage() {
+            const mainNodes = nodes.filter(n => !n.isSubagent);
+            if (mainNodes.length < 2) return;
+            
+            const from = random(mainNodes);
+            const to = random(mainNodes.filter(n => n !== from));
+            messages.push(new Message(from, to));
+        }
+        
+        function spawnSubagents() {
+            const agents = nodes.filter(n => !n.isSubagent && n.type !== 'pm');
+            const agent = random(agents);
+            
+            const count = floor(random(3, 8));
+            for (let i = 0; i < count; i++) {
+                agent.spawnSubagent(i);
+            }
+            
+            addLog('success', `${agent.label} spawned ${count} subagents`);
+            updateStats();
+        }
+        
+        function simulateTask() {
+            addLog('info', 'PM Agent: New task from Linear - "Refactor authentication module"');
+            setTimeout(() => {
+                addLog('info', 'Policeman: Analyzing task complexity...');
+                setTimeout(() => {
+                    addLog('success', 'Policeman: Task distributed to Dev-1 and Dev-2');
+                    spawnSubagents();
+                }, 500);
+            }, 300);
+        }
+        
+        function updateStats() {
+            const mainAgents = nodes.filter(n => !n.isSubagent).length;
+            const subagents = nodes.filter(n => n.isSubagent).length;
+            
+            document.getElementById('agentCount').textContent = mainAgents;
+            document.getElementById('subagentCount').textContent = subagents;
+            
+            // Calculate message rate
+            const now = millis();
+            if (now - lastMessageTime > 1000) {
+                const rate = (messageCount * 1000) / (now - lastMessageTime);
+                document.getElementById('messageRate').textContent = rate.toFixed(1);
+                messageCount = 0;
+                lastMessageTime = now;
+            }
+            
+            // Calculate speedup based on parallelism
+            const speedup = 1 + (subagents * 0.8); // 80% efficiency per subagent
+            document.getElementById('speedup').textContent = speedup.toFixed(1) + 'x';
+        }
+        
+        function addLog(type, message) {
+            const container = document.getElementById('logContainer');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            container.appendChild(entry);
+            container.scrollTop = container.scrollHeight;
+            
+            // Keep only last 50 entries
+            while (container.children.length > 50) {
+                container.removeChild(container.children[0]);
+            }
+        }
+        
+        // Control functions
+        function togglePause() {
+            isPaused = !isPaused;
+            addLog('warning', isPaused ? 'Simulation paused' : 'Simulation resumed');
+        }
+        
+        function resetNetwork() {
+            nodes = nodes.filter(n => !n.isSubagent);
+            nodes.forEach(n => n.subagents = []);
+            messages = [];
+            addLog('info', 'Network reset to initial state');
+        }
+        
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight - 150);
+        }
+    </script>
+</body>
+</html>

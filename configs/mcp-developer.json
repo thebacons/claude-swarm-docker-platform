@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "type": "stdio",
+      "command": "mcp-server-filesystem",
+      "args": ["/home/claude/workspace", "/workspace/projects"],
+      "description": "File system access for development work"
+    },
+    "github": {
+      "type": "stdio",
+      "command": "mcp-server-github",
+      "env": {
+        "GITHUB_TOKEN": "${GITHUB_PAT_KEY}"
+      },
+      "description": "GitHub operations for code management"
+    }
+  }
+}

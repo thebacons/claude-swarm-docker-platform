@@ -1,0 +1,150 @@
+{
+  "hooks": {
+    "postResponse": [
+      {
+        "name": "anti-defeatist-detector",
+        "description": "Detects defeatist language patterns and triggers challenges",
+        "matcher": {
+          "patterns": [
+            "can't be done",
+            "impossible",
+            "fundamental limitation",
+            "architectural",
+            "doesn't work",
+            "not supported",
+            "no solution"
+          ]
+        },
+        "command": "/home/claude/workspace/hooks/challenger/anti-defeatist-hook.sh",
+        "blocking": false,
+        "timeout": 5000
+      },
+      {
+        "name": "circular-reasoning-detector",
+        "description": "Detects when repeating same failed approach",
+        "matcher": {
+          "patterns": [
+            "tried.*again",
+            "same.*approach",
+            "still.*not working",
+            "keeps failing",
+            "doesn't work either"
+          ]
+        },
+        "command": "echo '🔄 CIRCULAR PATTERN DETECTED! You are repeating the same approach. Try a different strategy!' >&2",
+        "blocking": false,
+        "timeout": 1000
+      },
+      {
+        "name": "context-overflow-warning",
+        "description": "Warns when approaching token limits",
+        "matcher": {
+          "patterns": [".*"]
+        },
+        "command": "tokens=$(wc -w < \"$CLAUDE_SESSION_LOG\" 2>/dev/null || echo 0); if [ \"$tokens\" -gt 90000 ]; then echo '⚠️ CONTEXT WARNING: Approaching token limit (${tokens}/100k). Consider using /compact!' >&2; fi",
+        "blocking": false,
+        "timeout": 1000
+      }
+    ],
+    "preToolUse": [
+      {
+        "name": "test-enforcement-check",
+        "description": "Ensures tests are run before marking tasks complete",
+        "matcher": {
+          "tools": ["TodoWrite"],
+          "patterns": ["completed", "done"]
+        },
+        "command": "/home/claude/workspace/hooks/testing/enforce-test-check.sh",
+        "blocking": true,
+        "timeout": 3000
+      },
+      {
+        "name": "parallel-execution-reminder",
+        "description": "Reminds to use Task tool for complex operations",
+        "matcher": {
+          "tools": ["*"],
+          "patterns": ["analyze.*multiple", "implement.*several", "check.*all", "test.*various"]
+        },
+        "command": "echo '🚀 REMINDER: Use Task tool to spawn up to 5 subagents for parallel execution!' >&2",
+        "blocking": false,
+        "timeout": 1000
+      },
+      {
+        "name": "copy-paste-verification",
+        "description": "Ensures understanding before reusing code",
+        "matcher": {
+          "tools": ["Write", "Edit"],
+          "contentLength": 1000
+        },
+        "command": "echo '📋 LARGE CODE BLOCK DETECTED: Ensure you understand what this code does before reusing!' >&2",
+        "blocking": false,
+        "timeout": 1000
+      }
+    ],
+    "postToolUse": [
+      {
+        "name": "audit-logger",
+        "description": "Logs all tool usage for compliance audit",
+        "matcher": {
+          "tools": ["*"]
+        },
+        "command": "echo \"$(date) | ${CLAUDE_TOOL_NAME} | ${CLAUDE_FILE_PATH:-N/A}\" >> /home/claude/workspace/logs/audit.log",
+        "blocking": false,
+        "timeout": 1000
+      },
+      {
+        "name": "code-quality-check",
+        "description": "Runs formatters after file edits",
+        "matcher": {
+          "tools": ["Edit", "Write", "MultiEdit"],
+          "filePatterns": ["*.py", "*.js", "*.ts", "*.tsx"]
+        },
+        "command": "/home/claude/workspace/hooks/quality/auto-format.sh",
+        "blocking": false,
+        "timeout": 10000
+      }
+    ]
+  },
+  "periodic": [
+    {
+      "name": "context-length-monitor",
+      "description": "Monitors context length every 2 minutes",
+      "interval": 120,
+      "command": "tokens=$(wc -w < \"$CLAUDE_SESSION_LOG\" 2>/dev/null || echo 0); if [ \"$tokens\" -gt 80000 ]; then echo '📊 Context usage: ${tokens}/100k tokens (80% used)' >&2; fi",
+      "enabled": true
+    },
+    {
+      "name": "resource-usage-monitor",
+      "description": "Monitors system resources when using parallel agents",
+      "interval": 60,
+      "command": "if pgrep -f 'claude.*Task' > /dev/null; then echo '💻 Resource check:' >&2; free -h | grep Mem >&2; fi",
+      "enabled": true
+    }
+  ],
+  "subagentStart": [
+    {
+      "name": "subagent-spawn-monitor",
+      "description": "Tracks when subagents are spawned",
+      "command": "echo \"🤖 Subagent spawned: ${CLAUDE_SUBAGENT_ID:-unknown} at $(date)\" >> /home/claude/workspace/logs/subagent-spawns.log",
+      "blocking": false
+    }
+  ],
+  "userPromptSubmit": [
+    {
+      "name": "complex-task-detector",
+      "description": "Suggests parallel execution for complex tasks",
+      "matcher": {
+        "patterns": ["analyze.*and.*and", "implement.*multiple", "create.*several", "test.*all"]
+      },
+      "command": "echo '💡 This looks like a complex task. Consider using Task tool to spawn 5 parallel subagents!' >&2",
+      "blocking": false
+    }
+  ],
+  "environment": {
+    "HOOKS_ENABLED": "true",
+    "HOOKS_LOG_LEVEL": "info",
+    "HOOKS_MAX_RETRIES": "3",
+    "CONTEXT_WARNING_THRESHOLD": "90000",
+    "CONTEXT_CRITICAL_THRESHOLD": "95000"
+  }
+}

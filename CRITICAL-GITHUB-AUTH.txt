@@ -1,0 +1,53 @@
+==================================================================
+              CRITICAL: GITHUB AUTHENTICATION METHOD
+==================================================================
+
+⚠️ ONLY THE CREDENTIALS IN .env FILE WORK - DO NOT USE ANY OTHER! ⚠️
+
+GitHub Username: Stored in .env file as GITHUB_USERNAME
+Working PAT: Stored securely in .env file as GITHUB_PAT_KEY
+
+==================================================================
+                    HOW TO PUSH TO GITHUB
+==================================================================
+
+Step 1: Export the PAT from .env
+---------------------------------
+source .env
+
+Step 2: Push to GitHub
+----------------------
+git push https://${GITHUB_USERNAME}:${GITHUB_PAT_KEY}@github.com/${GITHUB_USERNAME}/REPO_NAME.git BRANCH_NAME
+
+Example for this project:
+-------------------------
+git push https://${GITHUB_USERNAME}:${GITHUB_PAT_KEY}@github.com/${GITHUB_USERNAME}/claude-swarm-docker-platform.git feature/bac-151-docker-container-base
+
+==================================================================
+                       COMMON MISTAKES
+==================================================================
+
+❌ DO NOT USE these PATs (they don't work):
+   - github_pat_11ASSSCKI0945e5mUhfzts_... (wrong)
+   - CLAUDE_CODE_PAT_KEY from .env (no permissions)
+   - Any other PAT from .env files
+
+✅ ONLY USE:
+   The PAT stored in .env file as GITHUB_PAT_KEY
+
+==================================================================
+                    WHERE TO FIND THE PAT
+==================================================================
+
+Location: /mnt/c/Users/colin/Documents-local/91_Claude-Code/.env
+Look for: GITHUB_PAT_KEY=...
+
+==================================================================
+                  FOR DOCKER CONTAINERS
+==================================================================
+
+The PAT must be in your .env file with variable name GITHUB_PAT_KEY
+
+This will be passed to containers via docker-compose.yml
+
+==================================================================

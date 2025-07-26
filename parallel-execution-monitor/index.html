@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CASPER Parallel Execution Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f0f1e, #1a1a2e, #16213e);
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #00d4ff, #7c3aed, #f59e0b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.8;
+        }
+        
+        .main-container {
+            display: grid;
+            grid-template-columns: 250px 1fr 300px;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+        
+        .sidebar {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .visualization {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            min-height: 600px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stats-panel {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .agent-status {
+            margin-bottom: 20px;
+        }
+        
+        .agent-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .agent-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateX(5px);
+        }
+        
+        .agent-item.active {
+            border-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.1);
+        }
+        
+        .agent-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .agent-status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        
+        .status-idle { background: #666; }
+        .status-active { background: #10b981; }
+        .status-busy { background: #f59e0b; }
+        
+        .subagent-list {
+            margin-top: 10px;
+            padding-left: 20px;
+            font-size: 0.9em;
+        }
+        
+        .subagent {
+            padding: 5px 10px;
+            margin: 2px 0;
+            background: rgba(139, 92, 246, 0.2);
+            border-radius: 4px;
+            border-left: 3px solid #8b5cf6;
+        }
+        
+        .parallel-task-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .task-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .task-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #00d4ff, #7c3aed);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s ease;
+        }
+        
+        .task-card.active::before {
+            transform: scaleX(var(--progress, 0));
+        }
+        
+        .task-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #00d4ff;
+        }
+        
+        .task-status {
+            font-size: 0.9em;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 10px;
+        }
+        
+        .progress-bar {
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981, #059669);
+            transition: width 0.3s ease;
+        }
+        
+        .log-window {
+            background: #0a0a0a;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9em;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 3px 5px;
+            border-radius: 3px;
+        }
+        
+        .log-entry.info { color: #00d4ff; }
+        .log-entry.success { color: #10b981; }
+        .log-entry.warning { color: #f59e0b; }
+        .log-entry.error { color: #ef4444; }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #7c3aed, #3b82f6);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .stats-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .stats-label {
+            font-size: 0.9em;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 5px;
+        }
+        
+        .stats-value {
+            font-size: 1.8em;
+            font-weight: 600;
+            background: linear-gradient(45deg, #00d4ff, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .network-diagram {
+            position: relative;
+            height: 400px;
+            margin-bottom: 20px;
+        }
+        
+        .agent-node {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.8em;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .agent-node:hover {
+            transform: scale(1.1);
+            z-index: 10;
+        }
+        
+        .node-pm {
+            background: linear-gradient(45deg, #ec4899, #db2777);
+            left: 50%;
+            top: 10%;
+            transform: translateX(-50%);
+        }
+        
+        .node-policeman {
+            background: linear-gradient(45deg, #00d4ff, #0099cc);
+            left: 50%;
+            top: 40%;
+            transform: translateX(-50%);
+        }
+        
+        .node-dev1 {
+            background: linear-gradient(45deg, #10b981, #059669);
+            left: 20%;
+            top: 70%;
+        }
+        
+        .node-dev2 {
+            background: linear-gradient(45deg, #10b981, #059669);
+            left: 50%;
+            top: 70%;
+            transform: translateX(-50%);
+        }
+        
+        .node-tester {
+            background: linear-gradient(45deg, #f59e0b, #d97706);
+            left: 80%;
+            top: 70%;
+            transform: translateX(-100%);
+        }
+        
+        .connection-line {
+            position: absolute;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.2);
+            transform-origin: left center;
+        }
+        
+        .message-dot {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #00d4ff;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.8);
+            z-index: 20;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.8; }
+        }
+        
+        .agent-node.active {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>CASPER Parallel Execution Monitor</h1>
+        <p>Real-time visibility into 50-agent parallel orchestration</p>
+    </div>
+    
+    <div class="main-container">
+        <!-- Left Sidebar - Agent Status -->
+        <div class="sidebar">
+            <h3 style="margin-bottom: 20px;">Agent Status</h3>
+            
+            <div class="agent-item">
+                <div class="agent-name">
+                    <span><span class="agent-status-indicator status-active"></span>PM Agent</span>
+                    <span style="font-size: 0.8em; opacity: 0.7;">Coordinating</span>
+                </div>
+            </div>
+            
+            <div class="agent-item active">
+                <div class="agent-name">
+                    <span><span class="agent-status-indicator status-active"></span>Policeman</span>
+                    <span style="font-size: 0.8em; opacity: 0.7;">Orchestrating</span>
+                </div>
+                <div class="subagent-list">
+                    <div class="subagent">Subagent 1: Task Analysis</div>
+                    <div class="subagent">Subagent 2: Resource Allocation</div>
+                </div>
+            </div>
+            
+            <div class="agent-item">
+                <div class="agent-name">
+                    <span><span class="agent-status-indicator status-busy"></span>Developer-1</span>
+                    <span style="font-size: 0.8em; opacity: 0.7;">10 Subagents</span>
+                </div>
+                <div class="subagent-list" style="max-height: 100px; overflow-y: auto;">
+                    <div class="subagent">Subagent 1: UI Components</div>
+                    <div class="subagent">Subagent 2: API Integration</div>
+                    <div class="subagent">Subagent 3: State Management</div>
+                    <div class="subagent">Subagent 4: Routing</div>
+                    <div class="subagent">Subagent 5: Authentication</div>
+                </div>
+            </div>
+            
+            <div class="agent-item">
+                <div class="agent-name">
+                    <span><span class="agent-status-indicator status-busy"></span>Developer-2</span>
+                    <span style="font-size: 0.8em; opacity: 0.7;">8 Subagents</span>
+                </div>
+            </div>
+            
+            <div class="agent-item">
+                <div class="agent-name">
+                    <span><span class="agent-status-indicator status-idle"></span>Tester</span>
+                    <span style="font-size: 0.8em; opacity: 0.7;">Ready</span>
+                </div>
+            </div>
+            
+            <div class="agent-item">
+                <div class="agent-name">
+                    <span><span class="agent-status-indicator status-active"></span>Observer</span>
+                    <span style="font-size: 0.8em; opacity: 0.7;">Learning</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Center - Visualization -->
+        <div class="visualization">
+            <h3>Network Topology</h3>
+            
+            <div class="network-diagram">
+                <!-- Connection lines -->
+                <div class="connection-line" style="left: 50%; top: 18%; width: 1px; height: 22%;"></div>
+                <div class="connection-line" style="left: 35%; top: 48%; width: 30%; height: 1px; transform: rotate(45deg);"></div>
+                <div class="connection-line" style="left: 50%; top: 48%; width: 30%; height: 1px; transform: rotate(-45deg);"></div>
+                <div class="connection-line" style="left: 50%; top: 48%; width: 1px; height: 22%;"></div>
+                
+                <!-- Agent nodes -->
+                <div class="agent-node node-pm">PM<br>Agent</div>
+                <div class="agent-node node-policeman active">Policeman</div>
+                <div class="agent-node node-dev1">Dev-1</div>
+                <div class="agent-node node-dev2">Dev-2</div>
+                <div class="agent-node node-tester">Tester</div>
+                
+                <!-- Animated messages -->
+                <div class="message-dot" id="msg1"></div>
+            </div>
+            
+            <h3 style="margin-top: 30px;">Active Parallel Tasks</h3>
+            
+            <div class="parallel-task-container">
+                <div class="task-card active" style="--progress: 0.75">
+                    <div class="task-title">Fix Model Routing</div>
+                    <div class="task-status">Agent: Dev-1 Subagent 3</div>
+                    <div>Analyzing routing logic...</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 75%"></div>
+                    </div>
+                </div>
+                
+                <div class="task-card active" style="--progress: 0.45">
+                    <div class="task-title">CI/CD Design</div>
+                    <div class="task-status">Agent: Dev-2 Subagent 1</div>
+                    <div>Creating git hooks...</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 45%"></div>
+                    </div>
+                </div>
+                
+                <div class="task-card active" style="--progress: 0.90">
+                    <div class="task-title">Structure Analysis</div>
+                    <div class="task-status">Agent: Dev-2 Subagent 5</div>
+                    <div>Generating report...</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 90%"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <button class="btn" onclick="simulateParallelExecution()">🚀 Start Parallel Task</button>
+                <button class="btn" onclick="togglePause()">⏸️ Pause</button>
+                <button class="btn" onclick="clearLogs()">🗑️ Clear Logs</button>
+            </div>
+        </div>
+        
+        <!-- Right Sidebar - Stats & Logs -->
+        <div class="stats-panel">
+            <h3 style="margin-bottom: 20px;">Performance Metrics</h3>
+            
+            <div class="stats-item">
+                <div class="stats-label">Total Parallel Agents</div>
+                <div class="stats-value" id="totalAgents">23</div>
+            </div>
+            
+            <div class="stats-item">
+                <div class="stats-label">Tasks/Second</div>
+                <div class="stats-value" id="tasksPerSecond">4.7</div>
+            </div>
+            
+            <div class="stats-item">
+                <div class="stats-label">Speedup Factor</div>
+                <div class="stats-value" id="speedup">5.2x</div>
+            </div>
+            
+            <div class="stats-item">
+                <div class="stats-label">Efficiency</div>
+                <div class="stats-value" id="efficiency">87%</div>
+            </div>
+            
+            <h3 style="margin-top: 30px; margin-bottom: 10px;">Live Activity Log</h3>
+            
+            <div class="log-window" id="logWindow">
+                <div class="log-entry info">[PM Agent] Checking Linear for priorities...</div>
+                <div class="log-entry success">[PM Agent] Found 3 critical tasks</div>
+                <div class="log-entry info">[Policeman] Analyzing task dependencies...</div>
+                <div class="log-entry info">[Policeman] Spawning 3 parallel subagents</div>
+                <div class="log-entry success">[Dev-1:Sub-3] Started: Fix Model Routing</div>
+                <div class="log-entry success">[Dev-2:Sub-1] Started: CI/CD Design</div>
+                <div class="log-entry success">[Dev-2:Sub-5] Started: Structure Analysis</div>
+                <div class="log-entry info">[Observer] Monitoring execution patterns...</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let isPaused = false;
+        let activeSubagents = 23;
+        
+        // Simulate message animation
+        function animateMessage() {
+            const msg = document.getElementById('msg1');
+            let progress = 0;
+            
+            const animate = () => {
+                if (!isPaused && progress <= 100) {
+                    // Move from Policeman to Dev-1
+                    const x = 200 + (progress / 100) * 200;
+                    const y = 280 + (progress / 100) * 100;
+                    msg.style.left = x + 'px';
+                    msg.style.top = y + 'px';
+                    
+                    progress += 2;
+                    requestAnimationFrame(animate);
+                } else if (progress > 100) {
+                    // Reset
+                    setTimeout(() => {
+                        progress = 0;
+                        animateMessage();
+                    }, 1000);
+                }
+            };
+            
+            animate();
+        }
+        
+        // Start animations
+        animateMessage();
+        
+        // Update stats periodically
+        setInterval(() => {
+            if (!isPaused) {
+                // Update random stats
+                document.getElementById('tasksPerSecond').textContent = 
+                    (Math.random() * 3 + 3).toFixed(1);
+                
+                // Add new log entries
+                const logTypes = ['info', 'success', 'warning'];
+                const logMessages = [
+                    '[Dev-1:Sub-4] Processing file: components/Auth.tsx',
+                    '[Dev-2:Sub-3] Analyzing dependencies...',
+                    '[Tester:Sub-1] Running unit tests...',
+                    '[Observer] Pattern detected: Repeated import error',
+                    '[PM Agent] Task BAC-124 progress: 82%',
+                    '[Policeman] Reallocating resources...'
+                ];
+                
+                addLogEntry(
+                    logTypes[Math.floor(Math.random() * logTypes.length)],
+                    logMessages[Math.floor(Math.random() * logMessages.length)]
+                );
+            }
+        }, 2000);
+        
+        function addLogEntry(type, message) {
+            const logWindow = document.getElementById('logWindow');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logWindow.appendChild(entry);
+            logWindow.scrollTop = logWindow.scrollHeight;
+            
+            // Keep only last 50 entries
+            while (logWindow.children.length > 50) {
+                logWindow.removeChild(logWindow.children[0]);
+            }
+        }
+        
+        function simulateParallelExecution() {
+            activeSubagents += Math.floor(Math.random() * 5) + 3;
+            document.getElementById('totalAgents').textContent = activeSubagents;
+            
+            addLogEntry('info', '[User] Initiated new parallel task batch');
+            addLogEntry('success', `[Policeman] Spawning ${Math.floor(Math.random() * 5) + 3} new subagents`);
+            
+            // Update speedup
+            const speedup = (1 + Math.random() * 2 + activeSubagents / 10).toFixed(1);
+            document.getElementById('speedup').textContent = speedup + 'x';
+        }
+        
+        function togglePause() {
+            isPaused = !isPaused;
+            addLogEntry('warning', isPaused ? '[System] Monitoring paused' : '[System] Monitoring resumed');
+        }
+        
+        function clearLogs() {
+            document.getElementById('logWindow').innerHTML = '';
+            addLogEntry('info', '[System] Logs cleared');
+        }
+        
+        // Progress bar animations
+        setInterval(() => {
+            if (!isPaused) {
+                document.querySelectorAll('.task-card.active').forEach(card => {
+                    const currentProgress = parseFloat(card.style.getPropertyValue('--progress') || 0);
+                    const newProgress = Math.min(1, currentProgress + 0.01);
+                    card.style.setProperty('--progress', newProgress);
+                    
+                    const progressBar = card.querySelector('.progress-fill');
+                    if (progressBar) {
+                        progressBar.style.width = (newProgress * 100) + '%';
+                    }
+                    
+                    // Complete task
+                    if (newProgress >= 1) {
+                        card.classList.remove('active');
+                        const title = card.querySelector('.task-title').textContent;
+                        addLogEntry('success', `[System] Task completed: ${title}`);
+                    }
+                });
+            }
+        }, 100);
+    </script>
+</body>
+</html>

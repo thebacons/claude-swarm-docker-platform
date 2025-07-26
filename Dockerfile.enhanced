@@ -77,12 +77,16 @@ ENV PATH="/home/developer/.local/bin:${PATH}"
 ENV CLAUDE_HOME="/home/developer/.claude"
 ENV ANTHROPIC_API_KEY=""
 
-# Install Python packages as user
+# Install Python packages as user (including swarm orchestration dependencies)
 RUN pip3 install --user \
     anthropic \
     requests \
     pyyaml \
-    python-dotenv
+    python-dotenv \
+    redis \
+    psycopg2-binary \
+    aiofiles \
+    asyncio
 
 # Create Claude Code installation script
 RUN cat > /workspace/scripts/install-claude-code.sh << 'EOF'

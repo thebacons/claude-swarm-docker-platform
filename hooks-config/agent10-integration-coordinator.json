@@ -1,0 +1,94 @@
+{
+  "name": "Agent 10 - Integration Coordinator",
+  "description": "Coordinates all other hook agents and enforces comprehensive workflows",
+  "hooks": {
+    "sessionStart": [
+      {
+        "id": "initialize-safety-systems",
+        "command": "bash -c 'echo \"Initializing comprehensive safety system...\"; mkdir -p .claude-safety/{approvals,tests,staging,docs,audit}; touch .claude-safety/initialized; echo \"Safety systems online: $(date)\" > .claude-safety/session.log'"
+      },
+      {
+        "id": "load-project-rules",
+        "command": "bash -c 'if [ -f .project-rules.json ]; then echo \"Loading project-specific rules...\"; cat .project-rules.json; else echo \"No project rules found. Using defaults.\"; fi'"
+      }
+    ],
+    "userPromptSubmit": [
+      {
+        "id": "comprehensive-task-analysis",
+        "matcher": {
+          "prompt": ".*"
+        },
+        "command": "bash -c 'echo \"$CLAUDE_PROMPT\" > .claude-safety/current-task.txt; python3 -c \"import re; task = open(\".claude-safety/current-task.txt\").read(); risks = []; risks.append(\"HIGH_RISK: Production changes\") if \"production\" in task.lower() else None; risks.append(\"MEDIUM_RISK: Deletion detected\") if any(w in task.lower() for w in [\"delete\", \"remove\", \"drop\"]) else None; risks.append(\"REVIEW_NEEDED: Security-sensitive\") if any(w in task.lower() for w in [\"auth\", \"token\", \"password\", \"secret\"]) else None; print(\"\\n\".join(risks)) if risks else print(\"Task risk assessment: LOW\")\"'"
+      }
+    ],
+    "preToolUse": [
+      {
+        "id": "master-safety-check",
+        "matcher": {
+          "tools": ["*"]
+        },
+        "command": "bash -c 'if [ -f .claude-safety/.emergency-stop ]; then echo \"EMERGENCY STOP ACTIVATED. Remove .claude-safety/.emergency-stop to continue.\"; exit 1; fi'"
+      },
+      {
+        "id": "coordinate-approval-workflow",
+        "matcher": {
+          "tools": ["Edit", "Write", "MultiEdit"],
+          "path": ".*(critical|production|config|security).*"
+        },
+        "command": "bash -c 'echo \"Coordinating safety checks for $CLAUDE_FILE_PATH\"; checks_passed=0; [ -f .approved-changes ] && grep -q \"$CLAUDE_FILE_PATH\" .approved-changes && ((checks_passed++)); [ -f .claude-safety/tests/passed ] && ((checks_passed++)); [ -f .staging-tested ] && ((checks_passed++)); if [ $checks_passed -lt 2 ]; then echo \"BLOCKED: Only $checks_passed/3 safety checks passed\"; echo \"Required: Approval, Testing, Staging\"; exit 1; fi'"
+      }
+    ],
+    "postToolUse": [
+      {
+        "id": "audit-trail-master",
+        "matcher": {
+          "tools": ["*"]
+        },
+        "command": "bash -c 'echo \"$(date +\"%Y-%m-%d %H:%M:%S\") | $CLAUDE_TOOL_NAME | ${CLAUDE_FILE_PATH:-N/A} | ${CLAUDE_COMMAND:-N/A}\" >> .claude-safety/audit/master-audit.log'"
+      },
+      {
+        "id": "safety-metrics-collection",
+        "matcher": {
+          "tools": ["*"]
+        },
+        "command": "bash -c 'metrics_file=\".claude-safety/metrics-$(date +%Y%m%d).json\"; python3 -c \"import json, os; f = \\\"$metrics_file\\\"; m = json.load(open(f)) if os.path.exists(f) else {\\\"total_operations\\\": 0, \\\"blocked_operations\\\": 0, \\\"tests_run\\\": 0, \\\"approvals_required\\\": 0}; m[\\\"total_operations\\\"] += 1; json.dump(m, open(f, \\\"w\\\"))\"'"
+      }
+    ],
+    "sessionEnd": [
+      {
+        "id": "generate-safety-report",
+        "command": "bash -c 'echo \"Generating session safety report...\"; echo \"=== CLAUDE SAFETY REPORT ===\" > .claude-safety/session-report.txt; echo \"Session: $(date)\" >> .claude-safety/session-report.txt; echo \"Operations: $(wc -l < .claude-safety/audit/master-audit.log 2>/dev/null || echo 0)\" >> .claude-safety/session-report.txt; echo \"Blocks: $(grep -c \"BLOCKED\\|ERROR\" .claude-safety/session.log 2>/dev/null || echo 0)\" >> .claude-safety/session-report.txt; echo \"Tests Run: $(find . -name \"*.test-result\" -mtime -1 2>/dev/null | wc -l)\" >> .claude-safety/session-report.txt; cat .claude-safety/session-report.txt'"
+      }
+    ],
+    "error": [
+      {
+        "id": "emergency-response",
+        "matcher": {
+          "error": ".*(CRITICAL|FATAL|EMERGENCY).*"
+        },
+        "command": "bash -c 'echo \"CRITICAL ERROR DETECTED! Activating emergency protocols...\"; touch .claude-safety/.emergency-stop; echo \"$(date): EMERGENCY STOP - $CLAUDE_ERROR\" >> .claude-safety/emergency.log; echo \"System locked. Manual intervention required.\"'"
+      }
+    ]
+  },
+  "coordination_rules": {
+    "workflow_enforcement": [
+      "All production changes must pass through Agents 1, 5, and 7",
+      "Deletion operations require approval from Agents 1 and 3", 
+      "Complex tasks trigger Agent 4 for multi-agent suggestions",
+      "Code changes activate Agents 2, 5, and 6 for validation",
+      "All operations are logged by Agent 10 for audit trail"
+    ],
+    "escalation_matrix": {
+      "low_risk": ["Continue with standard hooks"],
+      "medium_risk": ["Require 2 agent approvals", "Run extended tests"],
+      "high_risk": ["Require 3 agent approvals", "Mandatory staging deployment", "Manual review"],
+      "critical_risk": ["Block operation", "Require admin override", "Generate incident report"]
+    },
+    "integration_points": {
+      "pre_operation": ["Risk assessment", "Approval check", "Resource verification"],
+      "during_operation": ["Real-time monitoring", "Anomaly detection", "Resource limits"],
+      "post_operation": ["Result validation", "Test execution", "Documentation update"],
+      "continuous": ["Audit logging", "Metrics collection", "Alert monitoring"]
+    }
+  }
+}

@@ -34,7 +34,34 @@ This guide provides step-by-step instructions to build the Claude Swarm Docker P
 ### API Keys
 - Anthropic API key (required)
 - Linear API key (optional)
-- GitHub Personal Access Token (optional)
+- GitHub Personal Access Token (required for pushing code)
+
+## 🔐 CRITICAL: GitHub Authentication Method
+
+### Working GitHub PAT Configuration
+The correct GitHub Personal Access Token is stored in the `.env` file:
+```bash
+# Location: /mnt/c/Users/colin/Documents-local/91_Claude-Code/claude-swarm-docker-spawn/.env
+GITHUB_PAT_KEY=<token-in-env-file>
+```
+
+### How to Push to GitHub (Required Method)
+```bash
+# 1. First export the PAT from .env
+source .env  # Or manually export from .env file
+
+# 2. Push using this exact format
+git push https://${GITHUB_USERNAME}:${GITHUB_PAT_KEY}@github.com/${GITHUB_USERNAME}/REPO_NAME.git BRANCH_NAME
+
+# Example for this project:
+git push https://${GITHUB_USERNAME}:${GITHUB_PAT_KEY}@github.com/${GITHUB_USERNAME}/claude-swarm-docker-platform.git feature/bac-151-docker-container-base
+```
+
+### Important Notes:
+- **GitHub Username**: Stored in .env file as `GITHUB_USERNAME`
+- **PAT Location**: `/mnt/c/Users/colin/Documents-local/91_Claude-Code/.env`
+- **DO NOT** use other PAT tokens found in .env files - only the one above works
+- This PAT must be available in containers for agents to push code
 
 ## Project Setup
 
@@ -74,6 +101,9 @@ POSTGRES_DB=claude_orchestration
 
 # Redis Configuration
 REDIS_PASSWORD=redis_secure_password_change_this
+
+# CRITICAL: GitHub PAT for agents to push code
+GITHUB_PAT_KEY=<your-working-github-pat-here>
 EOF
 ```
 

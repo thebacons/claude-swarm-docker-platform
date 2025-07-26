@@ -1,0 +1,31 @@
+{
+  "mcpServers": {
+    "linear": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://mcp.linear.app/sse"],
+      "description": "Linear project management (remote MCP server with 38 tools)"
+    },
+    "filesystem": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home/claude/workspace"],
+      "description": "Local filesystem access"
+    },
+    "github": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PAT_KEY}"
+      },
+      "description": "GitHub integration"
+    },
+    "ollama": {
+      "type": "http",
+      "url": "http://192.168.188.142:11434",
+      "headers": {},
+      "description": "Ollama LLM server"
+    }
+  }
+}

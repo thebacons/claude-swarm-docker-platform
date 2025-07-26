@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  # Observer Agent - The Learning Layer
+  observer:
+    image: casper-golden:fixed
+    container_name: casper-observer
+    hostname: observer
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - LINEAR_API_KEY=${LINEAR_API_KEY}
+      - GITHUB_PAT_KEY=${GITHUB_PAT_KEY}
+      - GITHUB_USERNAME=${GITHUB_USERNAME}
+      - AGENT_ROLE=observer
+      - AGENT_NAME=Observer-Learning
+    volumes:
+      - ./projects:/home/claude/workspace/projects
+      - ./scripts:/home/claude/workspace/scripts:ro
+      - ./configs:/home/claude/workspace/configs:ro
+      - ./logs:/home/claude/workspace/logs
+      - ./.env:/home/claude/workspace/.env:ro
+      - ./knowledge-base:/home/claude/workspace/knowledge-base
+      - observer-claude:/home/claude/.claude
+      - observer-config:/home/claude/.config/claude-code
+    networks:
+      - casper-net
+    command: ["/bin/bash", "-c", "tail -f /dev/null"]
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+
+networks:
+  casper-net:
+    external: true
+    name: claude-swarm-docker-spawn_casper-net
+
+volumes:
+  observer-claude:
+  observer-config:

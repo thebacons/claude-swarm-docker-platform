@@ -1,0 +1,55 @@
+{
+  "name": "Agent 6 - Hallucination Detection",
+  "description": "Detects and prevents AI hallucinations in code",
+  "hooks": {
+    "postResponse": [
+      {
+        "id": "detect-fictional-imports",
+        "matcher": {
+          "response": ".*import.*from ['\"]@(magical|super|ultra|advanced|pro).*['\"].*"
+        },
+        "command": "echo 'HALLUCINATION WARNING: Suspicious import detected. Verify package exists on npm/pypi'"
+      },
+      {
+        "id": "verify-api-claims",
+        "matcher": {
+          "response": ".*(this API|this endpoint|this method).*(automatically|magically|intelligently).*"
+        },
+        "command": "echo 'VERIFICATION NEEDED: AI claiming automatic functionality. Test manually!'"
+      },
+      {
+        "id": "check-fictional-methods",
+        "matcher": {
+          "response": "\\.(autoSolve|magicFix|intelligentProcess|smartHandle|autoOptimize)\\("
+        },
+        "command": "echo 'HALLUCINATION ALERT: Non-existent method names detected. Verify API documentation.'"
+      }
+    ],
+    "postToolUse": [
+      {
+        "id": "verify-new-dependencies",
+        "matcher": {
+          "tools": ["Edit", "Write"],
+          "content": ".*(require|import).*(from|=).*['\"]([^'\"]+)['\"]"
+        },
+        "command": "bash -c 'deps=$(echo \"$CLAUDE_CONTENT\" | grep -oE \"(require|import).*['\\\"]([^'\\\"]+)['\\\"]\" | grep -oE \"['\\\"]([^'\\\"]+)['\\\"]\" | tr -d \"'\\\"\" | sort -u); for dep in $deps; do npm list $dep 2>/dev/null || pip show $dep 2>/dev/null || echo \"WARNING: Unverified dependency: $dep\"; done'"
+      },
+      {
+        "id": "validate-config-values",
+        "matcher": {
+          "tools": ["Write"],
+          "path": ".*\\.(json|yaml|yml|config).*"
+        },
+        "command": "echo 'CONFIG CHECK: Validating configuration values...' && python -m json.tool $CLAUDE_FILE_PATH >/dev/null 2>&1 || echo 'Invalid JSON configuration'"
+      },
+      {
+        "id": "api-endpoint-verification",
+        "matcher": {
+          "tools": ["Edit"],
+          "content": ".*(fetch|axios|request).*['\"]https?://.*['\"]"
+        },
+        "command": "bash -c 'urls=$(echo \"$CLAUDE_CONTENT\" | grep -oE \"https?://[^'\\\"\\s]+\"); for url in $urls; do curl -s -o /dev/null -w \"API Check %{url}: %{http_code}\\n\" \"$url\" || echo \"WARNING: Unverifiable endpoint: $url\"; done'"
+      }
+    ]
+  }
+}

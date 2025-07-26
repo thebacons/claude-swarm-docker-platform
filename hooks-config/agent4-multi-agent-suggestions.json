@@ -1,0 +1,46 @@
+{
+  "name": "Agent 4 - Multi-Agent Usage Suggestions",
+  "description": "Suggests multi-agent approach for complex tasks",
+  "hooks": {
+    "userPromptSubmit": [
+      {
+        "id": "suggest-parallel-processing",
+        "matcher": {
+          "prompt": ".*(multiple|many|several|various).*(files|components|modules|tests).*"
+        },
+        "command": "echo 'SUGGESTION: This task involves multiple components. Consider using parallel agents:\\n- Agent 1: Handle file group A\\n- Agent 2: Handle file group B\\n- Agent 3: Run tests in parallel'"
+      },
+      {
+        "id": "complex-task-detection",
+        "matcher": {
+          "prompt": ".*(refactor|migrate|upgrade|redesign|rewrite).*"
+        },
+        "command": "echo 'MULTI-AGENT OPPORTUNITY: Complex task detected. Recommended approach:\\n1. Analysis Agent: Map dependencies\\n2. Planning Agent: Create migration plan\\n3. Execution Agents (3-5): Parallel implementation\\n4. Testing Agent: Continuous validation'"
+      },
+      {
+        "id": "performance-task-swarm",
+        "matcher": {
+          "prompt": ".*(optimize|performance|speed up|scale).*"
+        },
+        "command": "echo 'SWARM SUGGESTION: Performance optimization benefits from parallel analysis:\\n- Profiling Agent: Identify bottlenecks\\n- Database Agent: Query optimization\\n- Code Agent: Algorithm improvements\\n- Testing Agent: Benchmark validation'"
+      },
+      {
+        "id": "testing-parallelization",
+        "matcher": {
+          "prompt": ".*(test|testing|coverage|validation).*"
+        },
+        "command": "bash -c 'if [ -d \"tests\" ] && [ $(find tests -name \"*.test.*\" | wc -l) -gt 10 ]; then echo \"PARALLEL TESTING: $(find tests -name \"*.test.*\" | wc -l) test files found. Use 4-6 agents for parallel execution.\"; fi'"
+      }
+    ],
+    "preToolUse": [
+      {
+        "id": "suggest-agent-for-search",
+        "matcher": {
+          "tools": ["Grep", "Glob"],
+          "pattern": ".*"
+        },
+        "command": "echo 'TIP: For comprehensive search across large codebases, consider spawning search agents:\\n  claude-swarm search --agents 3 --pattern \"$CLAUDE_PATTERN\"'"
+      }
+    ]
+  }
+}

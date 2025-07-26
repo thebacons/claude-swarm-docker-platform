@@ -1,0 +1,49 @@
+{
+  "name": "Agent 5 - Testing Enforcement",
+  "description": "Enforces testing after changes",
+  "hooks": {
+    "postToolUse": [
+      {
+        "id": "run-unit-tests-after-edit",
+        "matcher": {
+          "tools": ["Edit", "MultiEdit", "Write"],
+          "path": ".*\\.(js|ts|py|java|go)$"
+        },
+        "command": "bash -c 'echo \"Running tests for $CLAUDE_FILE_PATH...\"; if [ -f \"test_$CLAUDE_FILE_PATH\" ]; then python -m pytest \"test_$CLAUDE_FILE_PATH\" || echo \"TESTS FAILED: Fix before continuing\"; elif [ -f \"${CLAUDE_FILE_PATH%.js}.test.js\" ]; then npm test \"${CLAUDE_FILE_PATH%.js}.test.js\" || echo \"TESTS FAILED\"; else echo \"WARNING: No tests found for $CLAUDE_FILE_PATH\"; fi'"
+      },
+      {
+        "id": "integration-test-check",
+        "matcher": {
+          "tools": ["Edit"],
+          "path": ".*(api|endpoint|route|controller).*"
+        },
+        "command": "echo 'API CHANGE DETECTED: Running integration tests...' && npm run test:integration 2>/dev/null || echo 'Integration tests required'"
+      },
+      {
+        "id": "regression-test-trigger",
+        "matcher": {
+          "tools": ["MultiEdit"],
+          "edits_count": ">3"
+        },
+        "command": "echo 'MULTIPLE EDITS: Triggering regression test suite...' && bash -c 'if [ -f run-regression.sh ]; then ./run-regression.sh; else echo \"Create run-regression.sh for automated testing\"; fi'"
+      },
+      {
+        "id": "test-coverage-check",
+        "matcher": {
+          "tools": ["Write"],
+          "path": ".*\\.(js|ts|py)$"
+        },
+        "command": "bash -c 'echo \"Checking test coverage...\"; if command -v coverage >/dev/null; then coverage run -m pytest 2>/dev/null && coverage report | grep $CLAUDE_FILE_PATH || echo \"No coverage for new file\"; fi'"
+      }
+    ],
+    "preCommit": [
+      {
+        "id": "block-commit-without-tests",
+        "matcher": {
+          "files": ".*\\.(js|ts|py|java|go)$"
+        },
+        "command": "bash -c 'echo \"Pre-commit: Running all tests...\"; npm test || python -m pytest || go test ./... || (echo \"COMMIT BLOCKED: Tests must pass\" && exit 1)'"
+      }
+    ]
+  }
+}

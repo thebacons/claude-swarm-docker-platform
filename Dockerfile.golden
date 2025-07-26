@@ -1,0 +1,294 @@
+# Claude Code Golden Image - Pre-installed with everything needed
+FROM ubuntu:22.04
+
+# Build arguments
+ARG CLAUDE_CODE_VERSION="latest"
+ARG NODE_VERSION="20"
+ARG PYTHON_VERSION="3.11"
+
+# Prevent interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    wget \
+    sudo \
+    build-essential \
+    software-properties-common \
+    ca-certificates \
+    gnupg \
+    lsb-release \
+    jq \
+    unzip \
+    vim \
+    nano \
+    htop \
+    net-tools \
+    iputils-ping \
+    && rm -rf /var/lib/apt/lists/*
+
+# Add Python PPA and install Python 3.11
+RUN add-apt-repository ppa:deadsnakes/ppa -y && \
+    apt-get update && \
+    apt-get install -y \
+    python${PYTHON_VERSION} \
+    python${PYTHON_VERSION}-venv \
+    python${PYTHON_VERSION}-dev \
+    python${PYTHON_VERSION}-distutils \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set Python 3.11 as default
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTHON_VERSION} 1 && \
+    update-alternatives --install /usr/bin/python python /usr/bin/python${PYTHON_VERSION} 1
+
+# Install pip
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python${PYTHON_VERSION}
+
+# Install Node.js (required for Claude Code and many MCP servers)
+RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - && \
+    apt-get install -y nodejs && \
+    npm install -g npm@latest
+
+# Create claude user (matches your local setup)
+RUN useradd -m -s /bin/bash claude && \
+    echo "claude ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# Set up directory structure
+WORKDIR /home/claude
+RUN mkdir -p \
+    .claude \
+    .claude-code \
+    .config/claude-code \
+    .cache \
+    .local/bin \
+    .local/share \
+    workspace/projects \
+    workspace/hooks \
+    workspace/scripts \
+    workspace/configs \
+    workspace/sessions \
+    && chown -R claude:claude /home/claude
+
+# Switch to claude user
+USER claude
+WORKDIR /home/claude
+
+# Install Python packages for orchestration
+RUN pip3 install --user \
+    anthropic \
+    requests \
+    pyyaml \
+    python-dotenv \
+    redis \
+    psycopg2-binary \
+    aiofiles \
+    asyncio \
+    rich \
+    click
+
+# Copy Claude Code binary and configuration from host
+# This assumes you have Claude Code installed on your host machine
+COPY --chown=claude:claude --from=host /usr/local/bin/claude /home/claude/.local/bin/claude
+COPY --chown=claude:claude --from=host ~/.claude /home/claude/.claude
+COPY --chown=claude:claude --from=host ~/.config/claude-code /home/claude/.config/claude-code
+
+# Copy proven hooks system
+COPY --chown=claude:claude hooks/ /home/claude/workspace/hooks/
+
+# Copy proven swarm orchestrator
+COPY --chown=claude:claude swarm-orchestrator.py /home/claude/workspace/scripts/
+COPY --chown=claude:claude demo-swarm.py /home/claude/workspace/scripts/
+COPY --chown=claude:claude swarm-config.yaml /home/claude/workspace/scripts/
+
+# Configure environment variables
+ENV PATH="/home/claude/.local/bin:${PATH}"
+ENV CLAUDE_HOME="/home/claude/.claude"
+ENV ANTHROPIC_API_KEY=""
+
+# Create MCP server configuration in workspace root
+RUN mkdir -p /home/claude/workspace && \
+    cat > /home/claude/workspace/.mcp.json << 'EOF'
+{
+  "mcpServers": {
+    "linear": {
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["-y", "linear-mcp-server"],
+      "env": {
+        "LINEAR_API_KEY": "${LINEAR_API_KEY}"
+      }
+    },
+    "filesystem": {
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home/claude/workspace"],
+      "env": {}
+    },
+    "github": {
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PAT_KEY}"
+      }
+    },
+    "ollama": {
+      "transport": "http",
+      "url": "http://192.168.188.142:11434",
+      "headers": {}
+    }
+  }
+}
+EOF
+
+# Create Claude Code settings that will load hooks from mounted config
+RUN cat > /home/claude/.config/claude-code/settings.json << 'EOF'
+{
+  "defaultModel": "claude-3-5-sonnet-20241022",
+  "apiKey": "${ANTHROPIC_API_KEY}",
+  "hooksConfig": "/home/claude/workspace/hooks/config/claude-hooks.json"
+}
+EOF
+
+# Create startup script that initializes Claude Code
+RUN cat > /home/claude/startup.sh << 'EOF'
+#!/bin/bash
+
+echo "=== CASPER Golden Image Starting ==="
+echo "Claude Code Pre-installed Edition"
+echo ""
+
+# Load environment from .env if mounted
+if [ -f /home/claude/workspace/.env ]; then
+    echo "Loading environment variables..."
+    set -a
+    source /home/claude/workspace/.env
+    set +a
+fi
+
+# Export critical environment variables
+export ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}"
+export GITHUB_PAT_KEY="${GITHUB_PAT_KEY}"
+export LINEAR_API_KEY="${LINEAR_API_KEY}"
+export AGENT_ROLE="${AGENT_ROLE:-orchestrator}"
+
+# Verify Claude Code installation
+if command -v claude &> /dev/null; then
+    echo "✅ Claude Code is installed"
+    claude --version || echo "Version check not available"
+else
+    echo "❌ Claude Code not found!"
+fi
+
+# Test MCP servers
+echo ""
+echo "Testing MCP server connectivity..."
+claude mcp list 2>/dev/null || echo "MCP server list not available"
+
+# Check hook configuration
+echo ""
+echo "Hook system status:"
+if [ -d /home/claude/workspace/hooks ]; then
+    echo "✅ Hooks directory mounted"
+    # Make all hook scripts executable
+    find /home/claude/workspace/hooks -name "*.sh" -exec chmod +x {} \; 2>/dev/null
+    echo "✅ Hook scripts made executable"
+    
+    # Load hook configuration if available
+    if [ -f /home/claude/workspace/hooks/config/claude-hooks.json ]; then
+        echo "✅ Hook configuration found"
+        # Copy to Claude Code settings location if needed
+        mkdir -p /home/claude/.config/claude-code
+        cp /home/claude/workspace/hooks/config/claude-hooks.json /home/claude/.config/claude-code/hooks.json
+    fi
+else
+    echo "⚠️  Hooks directory not found"
+fi
+
+# Agent role-specific initialization
+case "$AGENT_ROLE" in
+    "orchestrator"|"policeman")
+        echo ""
+        echo "=== Policeman Orchestrator Mode ==="
+        echo "You are the master orchestrator with ability to:"
+        echo "- Spawn and coordinate multiple agents"
+        echo "- Use proven swarm orchestration"
+        echo "- Validate all outputs with hooks"
+        echo ""
+        echo "To start orchestration:"
+        echo "  claude 'Orchestrate: [your task]'"
+        echo ""
+        echo "Or use direct swarm control:"
+        echo "  python3 /home/claude/workspace/scripts/swarm-orchestrator.py"
+        ;;
+    "developer")
+        echo ""
+        echo "=== Developer Agent Mode ==="
+        echo "Specialization: ${AGENT_SPECIALIZATION:-general}"
+        echo "Ready to receive tasks from orchestrator"
+        ;;
+    "tester")
+        echo ""
+        echo "=== Tester Agent Mode ==="
+        echo "Ready to validate code quality"
+        ;;
+esac
+
+# Start in workspace
+cd /home/claude/workspace
+
+echo ""
+echo "=== Golden Image Ready ==="
+echo ""
+
+# If interactive shell, start bash
+if [ -t 0 ]; then
+    exec /bin/bash
+else
+    # Keep container running for orchestration
+    tail -f /dev/null
+fi
+EOF
+
+RUN chmod +x /home/claude/startup.sh
+
+# Create orchestrator wrapper that understands its role
+RUN cat > /home/claude/.local/bin/casper-orchestrate << 'EOF'
+#!/bin/bash
+
+# CASPER Orchestrator - Launches Claude Code with orchestrator context
+
+SYSTEM_PROMPT="You are CASPER's Policeman Orchestrator running in a Docker container.
+
+You have the ability to:
+1. Spawn and coordinate multiple AI agents (up to 15 in parallel)
+2. Each agent runs in its own container (developer-1, developer-2, tester)
+3. Use the proven swarm orchestration at /home/claude/workspace/scripts/swarm-orchestrator.py
+4. All outputs are validated by hooks before acceptance
+5. You can spawn additional instances using docker-compose scale
+
+For parallel tasks, use:
+  python3 /home/claude/workspace/scripts/swarm-orchestrator.py
+
+For performance testing:
+  python3 /home/claude/workspace/scripts/demo-swarm.py
+
+Remember: You achieved 3.7x performance with parallel execution. Use it!"
+
+# Launch Claude Code with orchestrator context
+claude --system-prompt "$SYSTEM_PROMPT" "$@"
+EOF
+
+RUN chmod +x /home/claude/.local/bin/casper-orchestrate
+
+# Set up health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD claude --version || exit 1
+
+# Entry point
+ENTRYPOINT ["/home/claude/startup.sh"]
+
+# Default command
+CMD ["/bin/bash"]
